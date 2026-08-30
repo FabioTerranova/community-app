@@ -26,19 +26,22 @@ community-app/
 │   ├── theme.ts             → Design-Tokens (PLATZHALTER, wird beim Design ersetzt)
 │   ├── types.ts             → Domaenen-Modell: Member, CommunityEvent, AttendanceRecord, NewsItem
 │   ├── logic/attendance.ts  → reine Auswertung ("wie oft gekommen", Zusagen, kommende Termine)
+│   ├── logic/api.ts         → typsicherer Client fuer die api/-Endpunkte (Screens rufen NUR diesen)
 │   ├── data/                → pflegbare Inhalte/Beispieldaten (noch leer)
 │   ├── components/          → UI-Bausteine (nach Design)
 │   └── screens/             → Screens (nach Design)
-├── api/
-│   ├── _lib/notion.ts       → generische Notion-Anbindung (fetch, resolveDatabaseId, prop-Helfer)
+├── api/                     → Vercel-Serverless-Functions, VOLL implementiert (Notion/Resend/pdf-lib)
+│   ├── _lib/notion.ts       → generische Notion-Anbindung (query/create/update, ensureProperties, prop/read)
+│   ├── _lib/schema.ts       → Notion-Schema (DB-Namen, Env-IDs, Spalten)
+│   ├── _lib/attendanceStore.ts → Upsert/Query der Anwesenheiten (von attendance.ts + sign.ts genutzt)
 │   ├── notion-check.ts      → Diagnose: sieht die Integration die Datenbanken?
-│   ├── members.ts           → STUB: GET/POST Mitglieder
-│   ├── events.ts            → STUB: GET/POST Termine
-│   ├── attendance.ts        → STUB: GET/POST Anwesenheit (eintragen/an-/abmelden)
-│   ├── news.ts              → STUB: POST News-Versand (Resend)
-│   └── sign.ts              → STUB: POST Unterschrift → PDF (pdf-lib)
+│   ├── members.ts           → GET/POST Mitglieder
+│   ├── events.ts            → GET/POST Termine (nach Datum sortiert)
+│   ├── attendance.ts        → GET/POST Anwesenheit (eintragen/an-/abmelden)
+│   ├── news.ts              → POST News-Versand via Resend (an aktive Mitglieder; NEWS_TEST_TO = Testmodus)
+│   └── sign.ts              → POST Unterschrift → PDF (pdf-lib) + Datensatz auf 'attended' setzen
 ├── scripts/inject-head.mjs  → Web-Export-Nachbearbeitung (Meta-Tags)
-├── app.json · vercel.json · tsconfig.json · package.json · .env.example
+├── app.json · vercel.json · tsconfig.json · tsconfig.api.json · package.json · .env.example
 └── claude.bat · start-web.bat · start-app.bat
 ```
 
@@ -52,10 +55,11 @@ Aufloesung ueber Titel-Suche oder feste IDs (`NOTION_*_DB_ID`). Siehe `api/_lib/
 
 ## Befehle
 ```bash
-npm install                     # einmalig Abhaengigkeiten installieren
-npm run web                     # Web-Vorschau im Browser (schnelles Iterieren)
-npx tsc --noEmit                # Typecheck
-npx expo export --platform web  # Web-Bundle bauen (validiert End-to-End) → dist/
+npm install                        # einmalig Abhaengigkeiten installieren
+npm run web                        # Web-Vorschau im Browser (schnelles Iterieren)
+npx tsc --noEmit                   # Typecheck App (src/)
+npx tsc --noEmit -p tsconfig.api.json  # Typecheck Serverless-Functions (api/)
+npx expo export --platform web     # Web-Bundle bauen (validiert End-to-End) → dist/
 ```
 
 ## Deploy (wie zenit-alpine-app)
@@ -64,9 +68,14 @@ npx expo export --platform web  # Web-Bundle bauen (validiert End-to-End) → di
 - `vercel.json`: `npx expo export --platform web` → `dist`.
 - Env-Vars bei Vercel: `NOTION_TOKEN`, `RESEND_API_KEY`, `NEWS_FROM` (+ optional `NOTION_*_DB_ID`).
 
-## Naechste Schritte (vor Design bereits erledigt: Grundgeruest)
-- [ ] `npm install` + `npx tsc --noEmit` gruen
-- [ ] GitHub-Repo anlegen + pushen, Vercel-Projekt importieren, Env-Vars setzen
-- [ ] **Design** festlegen (Farben in `theme.ts`, Screens, Navigation)
-- [ ] Notion-Datenbanken anlegen + mit Integration teilen
-- [ ] api/-Stubs implementieren (members/events/attendance/news/sign)
+## Stand
+Alles bis auf **UI/UX & Design** steht — technisch live-faehig:
+- [x] Grundgeruest, `npm install`, beide Typechecks gruen, Web-Build baut
+- [x] GitHub-Repo (public) + erster Push
+- [x] Backend voll implementiert: Mitglieder, Termine, Anwesenheit, News (Resend), Unterschrift (pdf-lib)
+- [x] Typsicherer Frontend-Client `src/logic/api.ts`
+
+Fuer den Live-Gang fehlen nur noch (extern, deine Konten):
+- [ ] Vercel-Projekt importieren + Env-Vars setzen (`NOTION_TOKEN`, `RESEND_API_KEY`, `NEWS_FROM`; Testmodus `NEWS_TEST_TO`)
+- [ ] 3 Notion-Datenbanken anlegen (Titel enthaelt „Mitglied"/„Termin"/„Anwesenheit") + mit Integration teilen — Spalten legt die App selbst an
+- [ ] **Design**: Farben in `theme.ts`, Screens + Navigation (Screens nutzen `src/logic/api.ts`)

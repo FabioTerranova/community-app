@@ -47,8 +47,9 @@
 
 ## Status / offen
 
-- ✅ Grundgeruest (Ordner, Config, Domaenen-Modell, Notion-Lib, api-Stubs, Docs, Launcher)
-- ⬜ `npm install` + Typecheck gruen
-- ⬜ GitHub-Repo + Vercel-Projekt + Env-Vars
-- ⬜ Design (Farben/Screens/Navigation)
-- ⬜ Notion-Datenbanken + api-Implementierung
+- ✅ Grundgeruest + Backend voll implementiert (Mitglieder/Termine/Anwesenheit/News/Unterschrift)
+- ✅ Beide Typechecks gruen, Web-Build baut
+- ✅ GitHub-Repo (public) + erster Push
+- ⬜ Vercel-Projekt importieren + Env-Vars setzen
+- ⬜ Notion-Datenbanken anlegen + mit Integration teilen
+- ⬜ Design (Farben/Screens/Navigation) — der bewusst aufgesparte Teil

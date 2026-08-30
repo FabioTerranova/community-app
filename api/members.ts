@@ -1,20 +1,57 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import {
+  createPage,
+  ensureProperties,
+  prop,
+  queryDatabase,
+  read,
+  resolveDatabaseId,
+} from './_lib/notion';
+import { MEMBERS, envId } from './_lib/schema';
 
 /**
- * Mitglieder-Endpunkt (STUB — Grundgeruest, Umsetzung nach dem Design).
- *
- * Geplanter Vertrag:
- *   GET  /api/members            -> Member[]              (Liste aus Notion "Mitglieder")
- *   POST /api/members {name,...} -> Member                (neues Mitglied anlegen)
- *
- * Umsetzung dann via api/_lib/notion.ts:
- *   resolveDatabaseId(token, /mitglied|member/i, process.env.NOTION_MEMBERS_DB_ID)
+ * Mitglieder:
+ *   GET  /api/members             -> { ok, members: Member[] }
+ *   POST /api/members {name,email?,active?} -> { ok, member: Member }
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  return res.status(501).json({
-    ok: false,
-    endpoint: 'members',
-    method: req.method,
-    reason: 'Noch nicht implementiert — Grundgeruest steht, Umsetzung nach dem Design.',
-  });
+  const token = process.env.NOTION_TOKEN;
+  if (!token) return res.status(500).json({ ok: false, reason: 'NOTION_TOKEN fehlt.' });
+
+  try {
+    const dbId = await resolveDatabaseId(token, MEMBERS.match, envId(MEMBERS));
+    const titleProp = await ensureProperties(token, dbId, MEMBERS.props);
+
+    if (req.method === 'GET') {
+      const rows = await queryDatabase(token, dbId);
+      const members = rows.map((r) => ({
+        id: r.id,
+        name: read.titleText(r.properties?.[titleProp]),
+        email: read.email(r.properties?.['E-Mail']) || undefined,
+        active: r.properties?.Aktiv ? read.checkbox(r.properties.Aktiv) : true,
+      }));
+      return res.status(200).json({ ok: true, members });
+    }
+
+    if (req.method === 'POST') {
+      const { name, email, active } = (req.body || {}) as {
+        name?: string;
+        email?: string;
+        active?: boolean;
+      };
+      if (!name) return res.status(400).json({ ok: false, reason: 'name fehlt.' });
+      const page = await createPage(token, dbId, {
+        [titleProp]: prop.title(name),
+        'E-Mail': prop.email(email),
+        Aktiv: prop.checkbox(active !== false),
+      });
+      return res
+        .status(200)
+        .json({ ok: true, member: { id: page.id, name, email, active: active !== false } });
+    }
+
+    return res.status(405).json({ ok: false, reason: 'Method not allowed.' });
+  } catch (err: any) {
+    return res.status(500).json({ ok: false, reason: err?.message || 'Fehler' });
+  }
 }

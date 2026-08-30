@@ -1,0 +1,15 @@
+{
+  "// Zweck": "Lokaler Typecheck der Vercel-Serverless-Functions in api/ (die App-tsconfig schliesst api/ aus). Vercel selbst baut api/ mit eigenem Bundler.",
+  "compilerOptions": {
+    "strict": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "types": ["node"],
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "noEmit": true
+  },
+  "include": ["api/**/*.ts"]
+}

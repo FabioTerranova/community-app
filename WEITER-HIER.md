@@ -23,16 +23,22 @@ externe Einrichten (Vercel-Env-Vars + Notion-Datenbanken).
 - **Verifiziert:** App-Typecheck gruen, api-Typecheck gruen (`tsconfig.api.json`), Web-Build baut.
 - **Launcher** (`claude.bat` etc.) + **Docs** (`CLAUDE.md`, `STACK.md`, `AGENTS.md`).
 
-### Naechste Schritte
-1. **Live schalten (extern, deine Konten):**
+### ⏸️ PAUSIERT — naechster konkreter Schritt
+**Fabio schickt zuerst ein Mockup / eine Design-Vorstellung.** Reihenfolge bewusst
+so gewaehlt (erst sehen, wie es aussehen soll, dann live):
+
+1. **Mockup abwarten** → dann **Design** bauen: Farben/Tokens in `src/theme.ts`, danach
+   Screens (Home, Termine, Anwesenheit/Eintragen, Unterschrift, News) + Navigation in
+   `App.tsx`. Die Screens haengen sich an `src/logic/api.ts` — die Logik steht bereits.
+2. **DANACH erst live schalten (extern, Fabios Konten):**
    - Vercel: Repo importieren (Framework „Other", Build aus `vercel.json`), dann
      Env-Vars setzen: `NOTION_TOKEN`, `RESEND_API_KEY`, `NEWS_FROM`, Testmodus `NEWS_TEST_TO`.
    - Notion: 3 Datenbanken anlegen (Titel enthaelt „Mitglied"/„Termin"/„Anwesenheit"),
      jeweils mit der Integration teilen. Spalten legt die App automatisch an.
    - Test: `<deploy-url>/api/notion-check` sollte die 3 Datenbanken zeigen.
-2. **Design** (der bewusst aufgesparte Teil): Farben in `src/theme.ts`, dann Screens
-   (Home, Termine, Anwesenheit/Eintragen, Unterschrift, News) + Navigation in `App.tsx`.
-   Die Screens haengen sich an `src/logic/api.ts` — die Logik steht bereits.
+
+> Der genaue Vercel/Notion/Resend-Klickpfad wurde bereits Schritt fuer Schritt
+> besprochen — bei Bedarf einfach danach fragen.
 
 ### Deploy-Weg (wie Schwester-Projekte)
 `git push` auf `main` → Vercel baut automatisch. ⚠️ Commit-Autor-Mail muss

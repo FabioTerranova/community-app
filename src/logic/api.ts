@@ -5,7 +5,13 @@
  * Im Web laeuft alles relativ ("/api/..."). Fuer die native App (Expo Go) die
  * volle Deploy-URL setzen: EXPO_PUBLIC_API_BASE=https://<projekt>.vercel.app
  */
-import type { AttendanceRecord, AttendanceStatus, CommunityEvent, Member } from '../types';
+import type {
+  AttendanceRecord,
+  AttendanceStatus,
+  CommunityEvent,
+  DailyVerse,
+  Member,
+} from '../types';
 
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE || '';
 
@@ -77,6 +83,13 @@ export async function signAttendance(input: {
   eventTitle?: string;
 }): Promise<{ pdfBase64: string; signatureRef: string }> {
   return call<{ pdfBase64: string; signatureRef: string }>('/api/sign', { method: 'POST', body: input });
+}
+
+// --- Vers des Tages ---
+/** Heutige (oder fuer `date`) Tageslosung. Optional: YYYY-MM-DD. */
+export async function getDailyVerse(date?: string): Promise<DailyVerse> {
+  const suffix = date ? `?date=${encodeURIComponent(date)}` : '';
+  return (await call<{ verse: DailyVerse }>(`/api/verse${suffix}`)).verse;
 }
 
 // --- News ---

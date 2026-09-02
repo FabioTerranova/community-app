@@ -15,6 +15,8 @@ export interface Member {
   name: string;
   email?: string;
   active?: boolean;
+  /** Selbst gewaehltes Avatar-Emoji (Spass-Faktor); faellt sonst auf Initialen zurueck. */
+  emoji?: string;
 }
 
 /** Ein Termin / eine Zusammenkunft. */
@@ -39,6 +41,25 @@ export interface AttendanceRecord {
   signedAt?: string;
   /** Referenz auf das gespeicherte Unterschrift-/Bestaetigungs-PDF (spaeter). */
   signatureRef?: string;
+}
+
+/**
+ * "Vers des Tages" (Herrnhuter Tageslosung). Kommt live aus `api/verse.ts`
+ * (offizielle Losungen-XML), faellt im Mockup/offline auf einen Platzhalter zurueck.
+ */
+export interface DailyVerse {
+  /** Losungstext (Altes Testament) — der eigentliche Tagesvers. */
+  text: string;
+  /** Bibelstelle zum Losungstext, z.B. "Jesaja 25,8". */
+  reference: string;
+  /** Uebersetzung/Quelle, z.B. "Losung" (Luther). */
+  translation: string;
+  /** Datum, auf das sich der Vers bezieht (YYYY-MM-DD). */
+  date?: string;
+  /** Lehrtext (Neues Testament) — der zweite Teil der Tageslosung. */
+  lehrtext?: string;
+  /** Bibelstelle zum Lehrtext. */
+  lehrtextReference?: string;
 }
 
 /** Eine an die Community verschickte Nachricht. */

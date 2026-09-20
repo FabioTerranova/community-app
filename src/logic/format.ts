@@ -58,6 +58,18 @@ export function weekBucket(iso: string, todayIso: string): 0 | 1 | 2 {
 
 export const WEEK_BUCKET_LABELS = ['Diese Woche', 'Nächste Woche', 'Später'] as const;
 
+/**
+ * Saeubert Losungs-/Lehrtexte fuer die Anzeige: die Herrnhuter Quelle nutzt "/"
+ * als Kursiv-Marker (z.B. "/Paulus schreibt:/") — die Slashes entfernen, den Text
+ * behalten, doppelte Leerzeichen zusammenfassen.
+ */
+export function cleanVerseText(text?: string): string {
+  return String(text ?? '')
+    .replace(/\//g, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
 /** Passendes Emoji je Termin-Art (aus dem Titel abgeleitet). */
 export function eventIcon(title: string): string {
   return eventCategory(title).icon;

@@ -164,7 +164,7 @@ export const lightPalette: Palette = {
   dangerSoft: '#ECEEF2',
   gold: '#DE3E79',
 
-  verseTintAt: '#FCEDF2',
+  verseTintAt: '#F6DAE6',
   verseTintNt: '#F6DAE6',
 };
 
@@ -205,7 +205,7 @@ export const darkPalette: Palette = {
   dangerSoft: '#232834',
   gold: '#5B8CFF',
 
-  verseTintAt: '#1B2540',
+  verseTintAt: '#243357',
   verseTintNt: '#243357',
 };
 

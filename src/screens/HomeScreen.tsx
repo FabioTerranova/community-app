@@ -5,7 +5,7 @@ import { radius, spacing, type Palette } from '../theme';
 import { useTheme } from '../ThemeContext';
 import { upcomingEvents } from '../logic/attendance';
 import { attendanceTrend, currentStreak, leaderboard, memberPoints } from '../logic/points';
-import { eventCategory, formatDate, formatLongDate } from '../logic/format';
+import { cleanVerseText, eventCategory, formatDate, formatLongDate } from '../logic/format';
 import { Avatar, Button, Card, CategoryChip, Pill, SectionTitle } from '../components/ui';
 import { BookIcon, MapPinIcon } from '../components/icons';
 import { FadeSlide, useCountUp } from '../components/motion';
@@ -127,7 +127,7 @@ export function HomeScreen(props: ScreenData) {
             <BookIcon size={16} color={colors.accent} />
             <Text style={s.verseLabel}>LOSUNG · ALTES TESTAMENT</Text>
           </View>
-          <Text style={s.verseText}>„{verse.text}"</Text>
+          <Text style={s.verseText}>„{cleanVerseText(verse.text)}"</Text>
           <Text style={s.verseRef}>
             {verse.reference}
             {verse.translation ? ` · ${verse.translation}` : ''}
@@ -142,7 +142,7 @@ export function HomeScreen(props: ScreenData) {
               <BookIcon size={16} color={colors.accent} />
               <Text style={s.verseLabel}>LEHRTEXT · NEUES TESTAMENT</Text>
             </View>
-            <Text style={s.verseText}>„{verse.lehrtext}"</Text>
+            <Text style={s.verseText}>„{cleanVerseText(verse.lehrtext)}"</Text>
             {verse.lehrtextReference ? (
               <Text style={s.verseRef}>{verse.lehrtextReference}</Text>
             ) : null}

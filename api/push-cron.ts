@@ -47,13 +47,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ ok: false, reason: 'Env fehlt (NOTION_TOKEN / VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY)' });
   }
 
+  // Test-Modus (?test=1): sendet SOFORT an alle vorhandenen Abos, ignoriert das
+  // 2h-Fenster und markiert nichts als "Gesendet" — nur zum Ausprobieren des Popups.
+  const testMode = req.query.test === '1' || req.query.test === 'true';
+
   webpush.setVapidDetails(process.env.VAPID_SUBJECT || 'mailto:admin@example.com', pub, priv);
 
   const dbId = await resolveDatabaseId(token, PUSH.match, envId(PUSH));
   await ensureProperties(token, dbId, PUSH.props);
 
   const rows = await queryDatabase(token, dbId, {
-    filter: { property: 'Gesendet', checkbox: { equals: false } },
+    ...(testMode ? {} : { filter: { property: 'Gesendet', checkbox: { equals: false } } }),
     page_size: 100,
   });
 
@@ -65,15 +69,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   for (const r of rows) {
     const p = r.properties || {};
     const startMs = eventStartMs(read.date(p['Termin-Datum']));
-    if (!Number.isFinite(startMs)) {
-      skipped++;
-      continue;
-    }
     const until = startMs - now;
-    // Nur wenn der Termin innerhalb der naechsten 2h liegt und noch nicht begonnen hat.
-    if (until > LEAD_MS || until <= 0) {
-      skipped++;
-      continue;
+    if (!testMode) {
+      // Nur wenn der Termin innerhalb der naechsten 2h liegt und noch nicht begonnen hat.
+      if (!Number.isFinite(startMs) || until > LEAD_MS || until <= 0) {
+        skipped++;
+        continue;
+      }
     }
 
     const endpoint = read.text(p['Endpoint']);
@@ -87,15 +89,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const mins = Math.round(until / 60000);
     const whenText = mins >= 90 ? 'in ca. 2 Stunden' : `in ca. ${Math.max(1, Math.round(mins / 5) * 5)} Minuten`;
-    const payload = JSON.stringify({
-      title: 'JUHA · bald geht’s los',
-      body: `${eventTitle} startet ${whenText}. Bis gleich! 🕊️`,
-      url: '/',
-    });
+    const payload = JSON.stringify(
+      testMode
+        ? {
+            title: 'JUHA · Test 🔔',
+            body: `Test-Erinnerung zu „${eventTitle}". Wenn du das siehst, funktioniert Push! 🕊️`,
+            url: '/',
+          }
+        : {
+            title: 'JUHA · bald geht’s los',
+            body: `${eventTitle} startet ${whenText}. Bis gleich! 🕊️`,
+            url: '/',
+          },
+    );
 
     try {
       await webpush.sendNotification({ endpoint, keys: { p256dh, auth } }, payload);
-      await updatePage(token, r.id, { Gesendet: { checkbox: true } });
+      if (!testMode) await updatePage(token, r.id, { Gesendet: { checkbox: true } });
       sent++;
     } catch (e: any) {
       failed++;

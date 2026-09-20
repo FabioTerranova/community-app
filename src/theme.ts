@@ -111,11 +111,6 @@ export interface Palette {
   danger: string;
   dangerSoft: string;
   gold: string;
-
-  /** Dezente Toenung der Vers-Boxen — beide in der Theme-Akzentfarbe (hell=rosa,
-   *  dunkel=blau), nur leicht unterschiedliche Schattierung zum Auseinanderhalten. */
-  verseTintAt: string;
-  verseTintNt: string;
 }
 
 /**
@@ -163,9 +158,6 @@ export const lightPalette: Palette = {
   danger: '#565C66',
   dangerSoft: '#ECEEF2',
   gold: '#DE3E79',
-
-  verseTintAt: '#F6DAE6',
-  verseTintNt: '#F6DAE6',
 };
 
 /**
@@ -204,9 +196,6 @@ export const darkPalette: Palette = {
   danger: '#A2A9B6',
   dangerSoft: '#232834',
   gold: '#5B8CFF',
-
-  verseTintAt: '#243357',
-  verseTintNt: '#243357',
 };
 
 export type ThemeMode = 'light' | 'dark';

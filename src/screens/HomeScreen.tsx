@@ -254,8 +254,8 @@ function makeStyles(colors: Palette) {
     metaDot: { width: 3, height: 3, borderRadius: 2, backgroundColor: colors.mutedForeground },
 
     verseCard: { gap: spacing.sm },
-    verseCardAt: { backgroundColor: colors.verseTintAt },
-    verseCardNt: { backgroundColor: colors.verseTintNt },
+    verseCardAt: { backgroundColor: colors.accentSoft },
+    verseCardNt: { backgroundColor: colors.accentSoft },
     verseHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     verseLabel: { fontSize: 11, fontWeight: '800', letterSpacing: 1, color: colors.accent },
     verseText: { fontSize: 16, fontStyle: 'italic', color: colors.foreground, lineHeight: 24 },

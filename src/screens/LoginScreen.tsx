@@ -22,6 +22,7 @@ import { requestLogin } from '../logic/auth';
 export function LoginScreen({ initialError }: { initialError?: string | null }) {
   const { colors } = useTheme();
   const s = useMemo(() => makeStyles(colors), [colors]);
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent'>('idle');
   const [error, setError] = useState<string | null>(initialError ?? null);
@@ -35,7 +36,7 @@ export function LoginScreen({ initialError }: { initialError?: string | null }) 
     setError(null);
     setStatus('sending');
     try {
-      await requestLogin(value);
+      await requestLogin(value, name.trim());
       setStatus('sent');
     } catch (e: any) {
       setStatus('idle');
@@ -88,8 +89,19 @@ export function LoginScreen({ initialError }: { initialError?: string | null }) 
               <>
                 <Text style={s.title}>Anmelden</Text>
                 <Text style={s.body}>
-                  Gib deine E-Mail ein — du bekommst einen Link zum Anmelden. Kein Passwort nötig.
+                  Gib deinen Namen und deine E-Mail ein — du bekommst einen Link zum Anmelden. Kein
+                  Passwort nötig.
                 </Text>
+                <TextInput
+                  value={name}
+                  onChangeText={setName}
+                  placeholder="Dein Name (z. B. Max Mustermann)"
+                  placeholderTextColor={colors.mutedForeground}
+                  autoCapitalize="words"
+                  autoCorrect={false}
+                  editable={status !== 'sending'}
+                  style={s.input}
+                />
                 <TextInput
                   value={email}
                   onChangeText={setEmail}

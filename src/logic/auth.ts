@@ -48,9 +48,9 @@ export function clearSession() {
   }
 }
 
-/** Login-Link per E-Mail anfordern. */
-export async function requestLogin(email: string): Promise<void> {
-  await post('request', { email });
+/** Login-Link per E-Mail anfordern. `name` wird bei erster Anmeldung als Anzeigename gesetzt. */
+export async function requestLogin(email: string, name?: string): Promise<void> {
+  await post('request', { email, name });
 }
 
 /** Falls `?token=` in der URL steht: einloesen, Session speichern, URL saeubern. */

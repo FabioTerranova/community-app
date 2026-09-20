@@ -8,6 +8,7 @@ import {
   queryDatabase,
   read,
   resolveDatabaseId,
+  updatePage,
 } from './_lib/notion';
 import { MEMBERS, envId } from './_lib/schema';
 import { nowPlus, signToken, verifyToken } from './_lib/auth';
@@ -75,17 +76,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const resendKey = process.env.RESEND_API_KEY;
       if (!resendKey) return res.status(500).json({ ok: false, reason: 'RESEND_API_KEY fehlt.' });
 
+      const providedName = String(body.name || '').trim();
       const { dbId, titleProp } = await membersDb(token);
       let member = await findByEmail(token, dbId, titleProp, email);
       if (!member) {
-        // Selbstregistrierung: neues Mitglied (Name = Teil vor dem @).
-        const name = email.split('@')[0];
+        // Selbstregistrierung: Name aus der Eingabe (Fallback: Teil vor dem @).
+        const finalName = providedName || email.split('@')[0];
         const page = await createPage(token, dbId, {
-          [titleProp]: prop.title(name),
+          [titleProp]: prop.title(finalName),
           'E-Mail': prop.email(email),
           Aktiv: prop.checkbox(true),
         });
-        member = { id: page.id, name, email, active: true, emoji: undefined, admin: false };
+        member = { id: page.id, name: finalName, email, active: true, emoji: undefined, admin: false };
+      } else if (providedName && providedName !== member.name) {
+        // Bestehendes Mitglied: Namen aktualisieren, wenn ein neuer angegeben wurde.
+        await updatePage(token, member.id, { [titleProp]: prop.title(providedName) });
+        member = { ...member, name: providedName };
       }
 
       const loginToken = signToken({ p: 'login', e: email, exp: nowPlus(15 * 60) });

@@ -122,7 +122,7 @@ export function HomeScreen(props: ScreenData) {
 
       {/* Vers des Tages — zwei getrennte Boxen: Losung (AT) + Lehrtext (NT) */}
       <FadeSlide delay={140}>
-        <Card style={s.verseCard}>
+        <Card style={[s.verseCard, s.verseCardAt]}>
           <View style={s.verseHead}>
             <BookIcon size={16} color={colors.accent} />
             <Text style={s.verseLabel}>LOSUNG · ALTES TESTAMENT</Text>
@@ -137,7 +137,7 @@ export function HomeScreen(props: ScreenData) {
 
       {verse.lehrtext ? (
         <FadeSlide delay={175}>
-          <Card style={s.verseCard}>
+          <Card style={[s.verseCard, s.verseCardNt]}>
             <View style={s.verseHead}>
               <BookIcon size={16} color={colors.accent} />
               <Text style={s.verseLabel}>LEHRTEXT · NEUES TESTAMENT</Text>
@@ -254,6 +254,8 @@ function makeStyles(colors: Palette) {
     metaDot: { width: 3, height: 3, borderRadius: 2, backgroundColor: colors.mutedForeground },
 
     verseCard: { gap: spacing.sm },
+    verseCardAt: { backgroundColor: colors.verseTintAt },
+    verseCardNt: { backgroundColor: colors.verseTintNt },
     verseHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     verseLabel: { fontSize: 11, fontWeight: '800', letterSpacing: 1, color: colors.accent },
     verseText: { fontSize: 16, fontStyle: 'italic', color: colors.foreground, lineHeight: 24 },

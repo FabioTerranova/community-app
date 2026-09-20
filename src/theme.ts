@@ -112,7 +112,8 @@ export interface Palette {
   dangerSoft: string;
   gold: string;
 
-  /** Dezente Toenung der Vers-Boxen: Losung (AT) = rosa, Lehrtext (NT) = blau. */
+  /** Dezente Toenung der Vers-Boxen — beide in der Theme-Akzentfarbe (hell=rosa,
+   *  dunkel=blau), nur leicht unterschiedliche Schattierung zum Auseinanderhalten. */
   verseTintAt: string;
   verseTintNt: string;
 }
@@ -163,8 +164,8 @@ export const lightPalette: Palette = {
   dangerSoft: '#ECEEF2',
   gold: '#DE3E79',
 
-  verseTintAt: '#FCEEF3',
-  verseTintNt: '#EEF3FE',
+  verseTintAt: '#FCEDF2',
+  verseTintNt: '#F6DAE6',
 };
 
 /**
@@ -204,8 +205,8 @@ export const darkPalette: Palette = {
   dangerSoft: '#232834',
   gold: '#5B8CFF',
 
-  verseTintAt: '#2A1E2B',
-  verseTintNt: '#1C2740',
+  verseTintAt: '#1B2540',
+  verseTintNt: '#243357',
 };
 
 export type ThemeMode = 'light' | 'dark';

@@ -22,6 +22,8 @@ export const MEMBERS: DbConfig = {
   props: {
     'E-Mail': { email: {} },
     Aktiv: { checkbox: {} },
+    Emoji: { rich_text: {} },
+    Admin: { checkbox: {} },
   },
 };
 

@@ -4,18 +4,18 @@ import { Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { APP_MAX_WIDTH, radius, spacing, type Palette } from './src/theme';
 import { ThemeProvider, useTheme } from './src/ThemeContext';
-import type { AttendanceRecord, DailyVerse } from './src/types';
+import type { AttendanceRecord, DailyVerse, Member } from './src/types';
 import {
   attendance as initialAttendance,
-  CURRENT_IS_ADMIN,
-  CURRENT_MEMBER_ID,
   events,
-  members,
+  members as initialMembers,
   TODAY,
   verseOfDay,
 } from './src/data/mock';
 import { getDailyVerse } from './src/logic/api';
 import { disablePushForEvent, enablePushForEvent, isPushSupported } from './src/logic/push';
+import { consumeMagicLink, logout, restoreSession, type AuthMember } from './src/logic/auth';
+import { LoginScreen } from './src/screens/LoginScreen';
 import { useWebFont } from './src/useWebFont';
 import { TabBar, type TabDef, type TabKey } from './src/components/TabBar';
 import { AmbientBackground } from './src/components/AmbientBackground';
@@ -49,16 +49,70 @@ function AppInner() {
   const [showIntro, setShowIntro] = useState(true);
   const [tab, setTab] = useState<TabKey>('home');
   const [records, setRecords] = useState<AttendanceRecord[]>(initialAttendance);
+  const [members, setMembers] = useState<Member[]>(initialMembers);
 
   // Emoji-Avatare (memberId -> Emoji), Start aus den Mitglieds-Daten.
   const [avatars, setAvatars] = useState<Record<string, string>>(() => {
     const map: Record<string, string> = {};
-    for (const m of members) if (m.emoji) map[m.id] = m.emoji;
+    for (const m of initialMembers) if (m.emoji) map[m.id] = m.emoji;
     return map;
   });
-  function setAvatar(emoji: string) {
-    setAvatars((prev) => ({ ...prev, [CURRENT_MEMBER_ID]: emoji }));
+
+  // --- Login (Magic-Link) ---
+  const [authMember, setAuthMember] = useState<AuthMember | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const currentMemberId = authMember?.id ?? '';
+  const isAdmin = !!authMember?.admin;
+
+  // Eingeloggtes Mitglied in die lokale Mitgliederliste uebernehmen.
+  function mergeMember(m: AuthMember) {
+    const asMember: Member = {
+      id: m.id,
+      name: m.name,
+      email: m.email,
+      active: m.active,
+      emoji: m.emoji,
+    };
+    setMembers((prev) =>
+      prev.some((x) => x.id === m.id)
+        ? prev.map((x) => (x.id === m.id ? { ...x, ...asMember } : x))
+        : [...prev, asMember],
+    );
+    if (m.emoji) setAvatars((prev) => ({ ...prev, [m.id]: m.emoji as string }));
   }
+
+  function handleLogout() {
+    logout();
+    setAuthMember(null);
+    setTab('home');
+  }
+
+  function setAvatar(emoji: string) {
+    if (currentMemberId) setAvatars((prev) => ({ ...prev, [currentMemberId]: emoji }));
+  }
+
+  // Beim Start: Magic-Link aus der URL einloesen, sonst bestehende Session pruefen.
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const m = (await consumeMagicLink()) || (await restoreSession());
+        if (alive && m) {
+          setAuthMember(m);
+          mergeMember(m);
+        }
+      } catch (e: any) {
+        if (alive) setAuthError(e?.message || 'Anmeldung fehlgeschlagen.');
+      } finally {
+        if (alive) setAuthChecked(true);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Vers des Tages: Platzhalter -> live aus api/verse. Nur uebernehmen, wenn ein
   // echter Vers zurueckkam (in der reinen Web-Vorschau ohne Backend bleibt der Platzhalter).
@@ -99,7 +153,7 @@ function AppInner() {
     });
 
     // Push nur fuers eigene Geraet und nur im Web/PWA-Kontext.
-    if (memberId !== CURRENT_MEMBER_ID || !isPushSupported()) return;
+    if (memberId !== currentMemberId || !isPushSupported()) return;
     const ev = events.find((e) => e.id === eventId);
     const me = members.find((m) => m.id === memberId);
     const info = {
@@ -133,7 +187,7 @@ function AppInner() {
     members,
     events,
     records,
-    currentMemberId: CURRENT_MEMBER_ID,
+    currentMemberId,
     today: TODAY,
     onToggleSignup: toggleSignup,
     onSetStatus: setStatus,
@@ -146,12 +200,17 @@ function AppInner() {
     { key: 'home', label: 'Start' },
     { key: 'events', label: 'Termine' },
     { key: 'leaderboard', label: 'Rangliste' },
-    ...(CURRENT_IS_ADMIN ? [{ key: 'admin' as TabKey, label: 'Admin' }] : []),
+    ...(isAdmin ? [{ key: 'admin' as TabKey, label: 'Admin' }] : []),
   ];
 
-  // Warten bis die Web-Schrift bereit ist -> kein Flackern von System- zu App-Schrift.
-  if (!fontReady) {
+  // Warten bis Web-Schrift bereit UND Login geprueft ist -> kein Flackern.
+  if (!fontReady || !authChecked) {
     return <View style={{ flex: 1, backgroundColor: colors.background }} />;
+  }
+
+  // Nicht eingeloggt -> Login-Screen (Magic-Link).
+  if (!authMember) {
+    return <LoginScreen initialError={authError} />;
   }
 
   return (
@@ -180,13 +239,23 @@ function AppInner() {
               <Text style={s.brandSub}>Jugendgruppe</Text>
             </View>
           </View>
-          <Pressable onPress={toggle} style={s.themeToggle}>
-            {mode === 'dark' ? (
-              <SunIcon size={20} color={colors.foreground} />
-            ) : (
-              <MoonIcon size={20} color={colors.foreground} />
-            )}
-          </Pressable>
+          <View style={s.headerActions}>
+            <Pressable
+              onPress={handleLogout}
+              style={s.logoutBtn}
+              accessibilityRole="button"
+              accessibilityLabel="Abmelden"
+            >
+              <Text style={s.logoutText}>Abmelden</Text>
+            </Pressable>
+            <Pressable onPress={toggle} style={s.themeToggle}>
+              {mode === 'dark' ? (
+                <SunIcon size={20} color={colors.foreground} />
+              ) : (
+                <MoonIcon size={20} color={colors.foreground} />
+              )}
+            </Pressable>
+          </View>
         </View>
 
         <View style={s.body}>
@@ -246,5 +315,17 @@ function makeStyles(colors: Palette) {
       alignItems: 'center',
       justifyContent: 'center',
     },
+    headerActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+    logoutBtn: {
+      height: 40,
+      paddingHorizontal: spacing.md,
+      borderRadius: radius.full,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    logoutText: { fontSize: 13, fontWeight: '700', color: colors.secondary },
   });
 }

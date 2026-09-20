@@ -7,6 +7,7 @@ import { eventCategory, formatDate, WEEK_BUCKET_LABELS, weekBucket } from '../lo
 import { Button, Card, CategoryChip, Pill, SectionTitle } from '../components/ui';
 import { CheckIcon, MapPinIcon, UsersIcon } from '../components/icons';
 import { FadeSlide } from '../components/motion';
+import { EventDuties } from '../components/EventDuties';
 import type { ScreenData } from './HomeScreen';
 
 function statusFor(records: AttendanceRecord[], memberId: string, eventId: string) {
@@ -106,6 +107,7 @@ export function EventsScreen({
                   icon={<UsersIcon size={12} color={signedUp ? colors.accent : colors.secondary} />}
                 />
               </View>
+              <EventDuties duties={event.duties} />
             </View>
           </View>
           <Button

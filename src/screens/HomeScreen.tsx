@@ -9,6 +9,7 @@ import { eventCategory, formatDate, formatLongDate } from '../logic/format';
 import { Avatar, Button, Card, CategoryChip, Pill, SectionTitle } from '../components/ui';
 import { BellIcon, BookIcon, MapPinIcon } from '../components/icons';
 import { FadeSlide, useCountUp } from '../components/motion';
+import { EventDuties } from '../components/EventDuties';
 
 export interface ScreenData {
   members: Member[];
@@ -124,19 +125,35 @@ export function HomeScreen(props: ScreenData) {
         </Card>
       </FadeSlide>
 
-      {/* Vers des Tages als Zitat */}
+      {/* Vers des Tages — zwei getrennte Boxen: Losung (AT) + Lehrtext (NT) */}
       <FadeSlide delay={140}>
         <Card style={s.verseCard}>
           <View style={s.verseHead}>
             <BookIcon size={16} color={colors.accent} />
-            <Text style={s.verseLabel}>VERS DES TAGES</Text>
+            <Text style={s.verseLabel}>LOSUNG · ALTES TESTAMENT</Text>
           </View>
           <Text style={s.verseText}>„{verse.text}"</Text>
           <Text style={s.verseRef}>
-            {verse.reference} · {verse.translation}
+            {verse.reference}
+            {verse.translation ? ` · ${verse.translation}` : ''}
           </Text>
         </Card>
       </FadeSlide>
+
+      {verse.lehrtext ? (
+        <FadeSlide delay={175}>
+          <Card style={s.verseCard}>
+            <View style={s.verseHead}>
+              <BookIcon size={16} color={colors.accent} />
+              <Text style={s.verseLabel}>LEHRTEXT · NEUES TESTAMENT</Text>
+            </View>
+            <Text style={s.verseText}>„{verse.lehrtext}"</Text>
+            {verse.lehrtextReference ? (
+              <Text style={s.verseRef}>{verse.lehrtextReference}</Text>
+            ) : null}
+          </Card>
+        </FadeSlide>
+      ) : null}
 
       {/* Kommende Termine */}
       <FadeSlide delay={210}>
@@ -176,6 +193,7 @@ export function HomeScreen(props: ScreenData) {
                         tone={signedUp ? 'accent' : 'neutral'}
                       />
                     </View>
+                    <EventDuties duties={event.duties} />
                   </View>
                 </View>
                 <View style={s.eventActions}>

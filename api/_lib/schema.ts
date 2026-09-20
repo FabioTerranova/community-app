@@ -58,5 +58,26 @@ export const ATTENDANCE: DbConfig = {
   },
 };
 
+/**
+ * Push-Abos fuer Termin-Erinnerungen (Web-Push, ~2h vor Beginn).
+ * Eine Zeile = ein Geraet-Abo fuer EINEN Termin. Endpoint/Keys stammen aus dem
+ * Browser-Push-Abo. `Gesendet` verhindert doppelten Versand.
+ */
+export const PUSH: DbConfig = {
+  match: /push|erinnerung|reminder|abo/i,
+  env: 'NOTION_PUSH_DB_ID',
+  props: {
+    'Mitglied-ID': { rich_text: {} },
+    Mitglied: { rich_text: {} },
+    'Termin-ID': { rich_text: {} },
+    Termin: { rich_text: {} },
+    'Termin-Datum': { date: {} },
+    Endpoint: { rich_text: {} },
+    P256dh: { rich_text: {} },
+    Auth: { rich_text: {} },
+    Gesendet: { checkbox: {} },
+  },
+};
+
 /** Liest eine feste DB-ID aus der Umgebung (oder undefined fuer Auto-Suche). */
 export const envId = (cfg: DbConfig): string | undefined => process.env[cfg.env];

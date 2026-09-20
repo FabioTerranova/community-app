@@ -19,6 +19,18 @@ export interface Member {
   emoji?: string;
 }
 
+/**
+ * Ein Dienst/eine Einteilung an einem Termin, z.B. „Einstieg" oder „Snacks".
+ * Bewusst generisch (Rolle + Personen), damit spaeter beliebige Rollen dazukommen
+ * koennen (Technik, Lobpreis, Aufraeumen …) ohne Datenmodell-Aenderung.
+ */
+export interface EventDuty {
+  /** Bezeichnung des Dienstes, z.B. "Einstieg" / "Snacks". */
+  role: string;
+  /** Eingeteilte Personen (Namen; spaeter ggf. Member-IDs). */
+  people: string[];
+}
+
 /** Ein Termin / eine Zusammenkunft. */
 export interface CommunityEvent {
   id: string;
@@ -27,6 +39,8 @@ export interface CommunityEvent {
   date: string;
   location?: string;
   notes?: string;
+  /** Einteilungen/Dienste fuer diesen Termin (optional). */
+  duties?: EventDuty[];
 }
 
 /** Zu-/Absage bzw. tatsaechliche Teilnahme eines Mitglieds an einem Termin. */

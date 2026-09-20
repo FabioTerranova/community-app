@@ -36,6 +36,10 @@ yarn-error.*
 .env*.local
 !.env.example
 
+# lokale Beispiel-/Rohdaten mit echten Namen — NICHT ins oeffentliche Repo
+Daten/
+.vercel
+
 # typescript
 *.tsbuildinfo
 

@@ -1,6 +1,6 @@
 // Nachbearbeitung des Expo-Web-Exports: macht aus dist/ eine "installierbare"
 // Web-App, die am iPhone-/Desktop-Homescreen wie eine echte App wirkt:
-//  - Eigenes App-Icon (CGS-Taube auf Marken-Verlauf) via manifest + apple-touch-icon
+//  - Eigenes App-Icon (JUHA-Taube auf Marken-Verlauf) via manifest + apple-touch-icon
 //  - Standalone (keine Browser-Leiste)
 //  - Fensterrahmen / Statusleiste / Safe-Areas in Marken-Farbe (NICHT weiss)
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -44,7 +44,7 @@ if (!html.includes('name="theme-color"')) {
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="CGS Community" />
+    <meta name="apple-mobile-web-app-title" content="JUHA" />
     <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="icon" type="image/svg+xml" href="./icon.svg" />
     <link rel="apple-touch-icon" href="./icon.svg" />
@@ -61,9 +61,9 @@ writeFileSync(path, html);
 
 // Web-App-Manifest schreiben (macht "Zum Home-Bildschirm" zu einer Standalone-App).
 const manifest = {
-  name: 'CGS Community',
-  short_name: 'CGS',
-  description: 'Gemeinschaft leben – Termine, Anmeldung, Teilnahme.',
+  name: 'JUHA',
+  short_name: 'JUHA',
+  description: 'Jugendgruppe – Termine, Anmeldung, Teilnahme.',
   lang: 'de',
   start_url: '.',
   scope: '.',

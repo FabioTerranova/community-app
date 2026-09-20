@@ -23,6 +23,9 @@ export const verseOfDay: DailyVerse = {
   text: 'Denn ich weiß wohl, was ich für Gedanken über euch habe, spricht der HERR: Gedanken des Friedens und nicht des Leides, dass ich euch gebe Zukunft und Hoffnung.',
   reference: 'Jeremia 29,11',
   translation: 'Losung',
+  lehrtext:
+    'Der Gott der Hoffnung aber erfülle euch mit aller Freude und Frieden im Glauben, dass ihr immer reicher werdet an Hoffnung durch die Kraft des Heiligen Geistes.',
+  lehrtextReference: 'Römer 15,13',
 };
 
 export const members: Member[] = [
@@ -41,23 +44,36 @@ export const EMOJI_CHOICES = [
 
 export const events: CommunityEvent[] = [
   // — Vergangene Woche 1 —
-  { id: 'e_0817', title: 'Gebetsabend', date: '2026-08-17', location: 'Bozen · Gemeindehaus' },
-  { id: 'e_0818', title: 'Hauskreis', date: '2026-08-18', location: 'Schlanders · bei Fam. Berger' },
-  { id: 'e_0819', title: 'Jugendtreff', date: '2026-08-19', location: 'Bozen · Jugendraum' },
-  { id: 'e_0823', title: 'Gottesdienst', date: '2026-08-23', location: 'Bozen · CGS Hauptsaal' },
-  // — Vergangene Woche 2 (Mi + So offen fuer Admin) —
-  { id: 'e_0824', title: 'Gebetsabend', date: '2026-08-24', location: 'Meran · Gemeindehaus' },
-  { id: 'e_0825', title: 'Hauskreis', date: '2026-08-25', location: 'Meran · bei Fam. Gruber' },
-  { id: 'e_0826', title: 'Jugendtreff', date: '2026-08-26', location: 'Bozen · Jugendraum' },
-  { id: 'e_0830', title: 'Gottesdienst', date: '2026-08-30', location: 'Bozen · CGS Hauptsaal' },
+  { id: 'e_0819', title: 'Jugendgruppe', date: '2026-08-19', location: 'Bozen · Jugendraum' },
+  { id: 'e_0823', title: 'Gottesdienst', date: '2026-08-23', location: 'Bozen · JUHA Hauptsaal' },
+  // — Vergangene Woche 2 (So offen fuer Admin) —
+  { id: 'e_0826', title: 'Jugendgruppe', date: '2026-08-26', location: 'Bozen · Jugendraum' },
+  { id: 'e_0830', title: 'Gottesdienst', date: '2026-08-30', location: 'Bozen · JUHA Hauptsaal' },
   // — Aktuelle/kommende Woche (Anmeldung offen) —
-  { id: 'e_0831', title: 'Gebetsabend', date: '2026-08-31', location: 'Bozen · Gemeindehaus' },
-  { id: 'e_0901', title: 'Hauskreis', date: '2026-09-01', location: 'Schlanders · bei Fam. Berger' },
-  { id: 'e_0902', title: 'Jugendtreff', date: '2026-09-02', location: 'Bozen · Jugendraum' },
-  { id: 'e_0906', title: 'Gottesdienst', date: '2026-09-06', location: 'Bozen · CGS Hauptsaal' },
-  // — Naechste Woche —
-  { id: 'e_0907', title: 'Gebetsabend', date: '2026-09-07', location: 'Meran · Gemeindehaus' },
-  { id: 'e_0908', title: 'Hauskreis', date: '2026-09-08', location: 'Schlanders · bei Fam. Pircher' },
+  { id: 'e_0902', title: 'Jugendgruppe', date: '2026-09-02', location: 'Bozen · Jugendraum' },
+  { id: 'e_0906', title: 'Gottesdienst', date: '2026-09-06', location: 'Bozen · JUHA Hauptsaal' },
+  // — Jugendgruppe Schlanders (Beispiel-Dienstplan; PLATZHALTER-Namen, echte Daten
+  //   kommen spaeter aus Notion — keine echten Namen ins oeffentliche Repo!) —
+  {
+    id: 'e_1002',
+    title: 'Jugendgruppe',
+    date: '2026-10-02',
+    location: 'Schlanders · Jugendraum',
+    duties: [
+      { role: 'Einstieg', people: ['Lukas M.', 'Sara B.'] },
+      { role: 'Snacks', people: ['Mia T.', 'Jonas R.'] },
+    ],
+  },
+  {
+    id: 'e_1009',
+    title: 'Jugendgruppe',
+    date: '2026-10-09',
+    location: 'Schlanders · Jugendraum',
+    duties: [
+      { role: 'Einstieg', people: ['Elias K.', 'Lena P.'] },
+      { role: 'Snacks', people: ['Nina S.', 'David F.'] },
+    ],
+  },
 ];
 
 /**

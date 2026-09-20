@@ -81,7 +81,7 @@ export function eventCategory(title: string): EventCategory {
   if (t.includes('hauskreis') || t.includes('kleingruppe'))
     return { key: 'kleingruppe', label: 'Kleingruppe', icon: '🏠', color: '#27AE87' };
   if (t.includes('jugend') || t.includes('d4j') || t.includes('teen'))
-    return { key: 'jugend', label: 'Jugend', icon: '✨', color: '#2D9CDB' };
+    return { key: 'jugend', label: 'Jugendgruppe', icon: '✨', color: '#2D9CDB' };
   if (t.includes('sozo'))
     return { key: 'sozo', label: 'SOZO', icon: '💛', color: '#E0658A' };
   if (t.includes('lobpreis') || t.includes('worship'))

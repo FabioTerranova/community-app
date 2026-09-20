@@ -6,7 +6,7 @@
  * aktive Zustaende, Hero) — nicht die ganze Flaeche. Das laesst die App
  * hochwertig statt "bunt/billig" wirken.
  *
- * Marke (CGS – Christen Gemeinden Suedtirol):
+ * Marke (JUHA – Jugendgruppe):
  *  - HELL  : Pink-Akzent auf fast-weissem, leicht rosé getoentem Grund
  *  - DUNKEL: Blau-Akzent auf tiefem Navy
  *

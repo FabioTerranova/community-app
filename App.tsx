@@ -15,6 +15,7 @@ import {
   verseOfDay,
 } from './src/data/mock';
 import { getDailyVerse } from './src/logic/api';
+import { disablePushForEvent, enablePushForEvent, isPushSupported } from './src/logic/push';
 import { useWebFont } from './src/useWebFont';
 import { TabBar, type TabDef, type TabKey } from './src/components/TabBar';
 import { AmbientBackground } from './src/components/AmbientBackground';
@@ -74,12 +75,39 @@ function AppInner() {
     };
   }, []);
 
-  // Termine mit aktiver Erinnerung (nur aktueller Nutzer). Spaeter: E-Mail via Resend.
+  // Termine mit aktiver Erinnerung (nur aktueller Nutzer). Beim Einschalten wird ein
+  // Web-Push-Abo angelegt; der Server schickt dann ~2h vor Beginn ein Popup aufs Handy.
   const [reminders, setReminders] = useState<string[]>([]);
   function toggleReminder(eventId: string) {
+    const turningOn = !reminders.includes(eventId);
+    // UI sofort umschalten (optimistisch).
     setReminders((prev) =>
       prev.includes(eventId) ? prev.filter((e) => e !== eventId) : [...prev, eventId],
     );
+
+    if (!isPushSupported()) return; // native App / Browser ohne Push-Unterstuetzung
+
+    const ev = events.find((e) => e.id === eventId);
+    const me = members.find((m) => m.id === CURRENT_MEMBER_ID);
+    const info = {
+      memberId: CURRENT_MEMBER_ID,
+      memberName: me?.name,
+      eventId,
+      eventTitle: ev?.title,
+      eventDate: ev?.date,
+    };
+
+    if (turningOn) {
+      enablePushForEvent(info).catch((err) => {
+        // Erlaubnis verweigert / Backend nicht erreichbar -> Schalter zuruecksetzen.
+        setReminders((prev) => prev.filter((e) => e !== eventId));
+        if (typeof window !== 'undefined') {
+          window.alert?.(`Erinnerung nicht aktiviert: ${err?.message ?? err}`);
+        }
+      });
+    } else {
+      disablePushForEvent(info);
+    }
   }
 
   // Mitglied meldet sich selbst an/ab (nur bei kommenden Terminen sinnvoll).
@@ -154,8 +182,8 @@ function AppInner() {
               <DoveMark size={22} color={colors.accent} />
             </View>
             <View>
-              <Text style={s.brand}>CGS Community</Text>
-              <Text style={s.brandSub}>Gemeinschaft leben</Text>
+              <Text style={s.brand}>JUHA</Text>
+              <Text style={s.brandSub}>Jugendgruppe</Text>
             </View>
           </View>
           <Pressable onPress={toggle} style={s.themeToggle}>

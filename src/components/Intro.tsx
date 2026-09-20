@@ -1,6 +1,6 @@
 /**
- * Intro-Splash (~1.6s): animierte Wortmarke "Community" — Buchstabe fuer Buchstabe
- * gleitend eingeblendet, darueber ein Marken-Zeichen, darunter die CGS-Tagline.
+ * Intro-Splash (~1.6s): animierte Wortmarke "JUHA" — Buchstabe fuer Buchstabe
+ * gleitend eingeblendet, darueber ein Marken-Zeichen, darunter die JUHA-Tagline.
  * Danach sanftes Ausblenden -> `onDone()` fuehrt in die App.
  *
  * Bewusst mit Marken-Verlauf als Vollflaeche (nur HIER ist Vollfarbe gewollt — als
@@ -13,7 +13,7 @@ import { useTheme } from '../ThemeContext';
 import { spacing } from '../theme';
 import { DoveMark } from './icons';
 
-const WORD = 'Community';
+const WORD = 'JUHA';
 const USE_NATIVE = Platform.OS !== 'web';
 
 export function Intro({ onDone }: { onDone: () => void }) {
@@ -124,7 +124,7 @@ export function Intro({ onDone }: { onDone: () => void }) {
             },
           ]}
         >
-          Gemeinschaft leben
+          Jugendgruppe
         </Animated.Text>
       </View>
     </Animated.View>

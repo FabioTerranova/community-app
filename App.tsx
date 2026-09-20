@@ -75,43 +75,18 @@ function AppInner() {
     };
   }, []);
 
-  // Termine mit aktiver Erinnerung (nur aktueller Nutzer). Beim Einschalten wird ein
-  // Web-Push-Abo angelegt; der Server schickt dann ~2h vor Beginn ein Popup aufs Handy.
-  const [reminders, setReminders] = useState<string[]>([]);
-  function toggleReminder(eventId: string) {
-    const turningOn = !reminders.includes(eventId);
-    // UI sofort umschalten (optimistisch).
-    setReminders((prev) =>
-      prev.includes(eventId) ? prev.filter((e) => e !== eventId) : [...prev, eventId],
+  // Mitglied meldet sich selbst an/ab (nur bei kommenden Terminen sinnvoll).
+  // Die Push-Erinnerung haengt direkt an der Anmeldung: anmelden -> Abo anlegen
+  // (Server schickt ~2h vor Beginn ein Popup), abmelden -> Abo entfernen.
+  function toggleSignup(memberId: string, eventId: string) {
+    // Aktuell angemeldet? Dann ist dieser Klick ein Abmelden.
+    const isSignedUp = records.some(
+      (r) =>
+        r.memberId === memberId &&
+        r.eventId === eventId &&
+        (r.status === 'yes' || r.status === 'attended'),
     );
 
-    if (!isPushSupported()) return; // native App / Browser ohne Push-Unterstuetzung
-
-    const ev = events.find((e) => e.id === eventId);
-    const me = members.find((m) => m.id === CURRENT_MEMBER_ID);
-    const info = {
-      memberId: CURRENT_MEMBER_ID,
-      memberName: me?.name,
-      eventId,
-      eventTitle: ev?.title,
-      eventDate: ev?.date,
-    };
-
-    if (turningOn) {
-      enablePushForEvent(info).catch((err) => {
-        // Erlaubnis verweigert / Backend nicht erreichbar -> Schalter zuruecksetzen.
-        setReminders((prev) => prev.filter((e) => e !== eventId));
-        if (typeof window !== 'undefined') {
-          window.alert?.(`Erinnerung nicht aktiviert: ${err?.message ?? err}`);
-        }
-      });
-    } else {
-      disablePushForEvent(info);
-    }
-  }
-
-  // Mitglied meldet sich selbst an/ab (nur bei kommenden Terminen sinnvoll).
-  function toggleSignup(memberId: string, eventId: string) {
     setRecords((prev) => {
       const existing = prev.find((r) => r.memberId === memberId && r.eventId === eventId);
       if (existing && (existing.status === 'yes' || existing.status === 'attended')) {
@@ -122,6 +97,27 @@ function AppInner() {
       }
       return [...prev, { id: `${memberId}__${eventId}`, memberId, eventId, status: 'yes' }];
     });
+
+    // Push nur fuers eigene Geraet und nur im Web/PWA-Kontext.
+    if (memberId !== CURRENT_MEMBER_ID || !isPushSupported()) return;
+    const ev = events.find((e) => e.id === eventId);
+    const me = members.find((m) => m.id === memberId);
+    const info = {
+      memberId,
+      memberName: me?.name,
+      eventId,
+      eventTitle: ev?.title,
+      eventDate: ev?.date,
+    };
+    if (!isSignedUp) {
+      // gerade angemeldet -> Erinnerung aktivieren (fragt beim 1. Mal nach Erlaubnis)
+      enablePushForEvent(info).catch(() => {
+        /* Erlaubnis verweigert / offline — Anmeldung bleibt trotzdem bestehen */
+      });
+    } else {
+      // gerade abgemeldet -> Erinnerung entfernen
+      disablePushForEvent(info);
+    }
   }
 
   // Admin setzt fuer einen (vergangenen) Termin, ob jemand da war -> vergibt/entzieht Punkt.
@@ -143,8 +139,6 @@ function AppInner() {
     onSetStatus: setStatus,
     avatars,
     onSetAvatar: setAvatar,
-    reminders,
-    onToggleReminder: toggleReminder,
     verse,
   };
 

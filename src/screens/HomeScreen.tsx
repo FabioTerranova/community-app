@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { AttendanceRecord, CommunityEvent, DailyVerse, Member } from '../types';
 import { radius, spacing, type Palette } from '../theme';
 import { useTheme } from '../ThemeContext';
@@ -7,7 +7,7 @@ import { upcomingEvents } from '../logic/attendance';
 import { attendanceTrend, currentStreak, leaderboard, memberPoints } from '../logic/points';
 import { eventCategory, formatDate, formatLongDate } from '../logic/format';
 import { Avatar, Button, Card, CategoryChip, Pill, SectionTitle } from '../components/ui';
-import { BellIcon, BookIcon, MapPinIcon } from '../components/icons';
+import { BookIcon, MapPinIcon } from '../components/icons';
 import { FadeSlide, useCountUp } from '../components/motion';
 import { EventDuties } from '../components/EventDuties';
 
@@ -22,9 +22,6 @@ export interface ScreenData {
   /** Emoji-Avatar je Mitglied (memberId -> Emoji). */
   avatars: Record<string, string>;
   onSetAvatar: (emoji: string) => void;
-  /** Termine, fuer die der aktuelle Nutzer eine Erinnerung aktiviert hat. */
-  reminders: string[];
-  onToggleReminder: (eventId: string) => void;
   /** Vers des Tages (live aus api/verse, sonst Platzhalter). */
   verse: DailyVerse;
 }
@@ -75,8 +72,6 @@ export function HomeScreen(props: ScreenData) {
     today,
     onToggleSignup,
     avatars,
-    reminders,
-    onToggleReminder,
     verse,
   } = props;
   const { colors } = useTheme();
@@ -164,7 +159,6 @@ export function HomeScreen(props: ScreenData) {
           const mine = statusFor(records, currentMemberId, event.id);
           const signedUp = mine === 'yes' || mine === 'attended';
           const cat = eventCategory(event.title);
-          const reminderOn = reminders.includes(event.id);
           const p = formatDate(event.date);
           return (
             <FadeSlide key={event.id} delay={250 + idx * 60}>
@@ -205,19 +199,7 @@ export function HomeScreen(props: ScreenData) {
                     onPress={() => onToggleSignup(currentMemberId, event.id)}
                   />
                   {signedUp ? (
-                    <Pressable
-                      onPress={() => onToggleReminder(event.id)}
-                      accessibilityRole="switch"
-                      accessibilityState={{ checked: reminderOn }}
-                      accessibilityLabel={reminderOn ? 'Erinnerung aus' : 'Erinnerung an'}
-                      style={[s.reminderBtn, reminderOn && s.reminderBtnOn]}
-                    >
-                      <BellIcon
-                        size={18}
-                        color={reminderOn ? colors.accent : colors.mutedForeground}
-                        filled={reminderOn}
-                      />
-                    </Pressable>
+                    <Text style={s.reminderHint}>🔔 Erinnerung ~2 Std. vorher aktiv</Text>
                   ) : null}
                 </View>
               </Card>
@@ -299,15 +281,7 @@ function makeStyles(colors: Palette) {
     meta: { fontSize: 13, color: colors.mutedForeground, fontWeight: '600', flexShrink: 1 },
     eventChips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, alignItems: 'center' },
     eventActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-    reminderBtn: {
-      width: 38,
-      height: 38,
-      borderRadius: radius.full,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: colors.surfaceAlt,
-    },
-    reminderBtnOn: { backgroundColor: colors.accentSoft },
+    reminderHint: { fontSize: 12, color: colors.mutedForeground, fontWeight: '600', flexShrink: 1 },
 
     infoBox: {
       backgroundColor: colors.surfaceAlt,

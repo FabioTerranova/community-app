@@ -36,10 +36,22 @@ html = html.replace('<html lang="en">', '<html lang="de">');
 
 // KEIN viewport-fit=cover: die installierte App soll sich wie im Browser verhalten
 // (Inhalt UNTER der Statusleiste, nicht randlos darunter).
+// ROBUST (idempotent): auch wenn Vercel einen gecachten/schon-injizierten Build
+// verarbeitet, wird cover/Statusleiste/altes Safe-Area-Padding hier IMMER
+// normalisiert — unabhaengig von der theme-color-Waechterbedingung weiter unten.
 html = html.replace(
   /<meta name="viewport"[^>]*\/>/,
   '<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />',
 );
+// Falls trotzdem noch ein cover uebrig ist (abweichendes Format): hart entfernen.
+html = html.replace(/,?\s*viewport-fit=cover/g, '');
+// Statusleiste immer auf "default" zwingen (auch bei gecachtem black-translucent).
+html = html.replace(
+  /<meta name="apple-mobile-web-app-status-bar-style"[^>]*\/>/g,
+  '<meta name="apple-mobile-web-app-status-bar-style" content="default" />',
+);
+// Altes Safe-Area-Padding (aus frueherem inject) am #root/#appframe entfernen.
+html = html.replace(/#(?:root|appframe)\s*\{[^}]*safe-area-inset[^}]*\}/g, '');
 
 if (!html.includes('name="theme-color"')) {
   const inject = `    <meta name="theme-color" content="${ACCENT}" />

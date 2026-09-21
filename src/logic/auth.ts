@@ -1,5 +1,5 @@
 /**
- * Login-Client (Magic-Link). Spricht NUR `/api/auth`.
+ * Login-Client (Code per E-Mail). Spricht NUR `/api/auth`.
  * Session-Token liegt im localStorage (nur Web). Auf Nativ ohne localStorage
  * bleibt man ausgeloggt (Login-Flow ist aktuell fuer Web/PWA gedacht).
  */
@@ -48,30 +48,16 @@ export function clearSession() {
   }
 }
 
-/** Login-Link per E-Mail anfordern. `name` wird bei erster Anmeldung als Anzeigename gesetzt. */
+/** Login-Code per E-Mail anfordern. `name` wird bei erster Anmeldung als Anzeigename gesetzt. */
 export async function requestLogin(email: string, name?: string): Promise<void> {
   await post('request', { email, name });
 }
 
-/** Falls `?token=` in der URL steht: einloesen, Session speichern, URL saeubern. */
-export async function consumeMagicLink(): Promise<AuthMember | null> {
-  if (typeof window === 'undefined') return null;
-  const url = new URL(window.location.href);
-  const token = url.searchParams.get('token');
-  if (!token) return null;
-  const clean = () => {
-    url.searchParams.delete('token');
-    window.history.replaceState({}, '', url.pathname + url.search + url.hash);
-  };
-  try {
-    const { session, member } = await post('verify', { token });
-    store(session);
-    clean();
-    return member as AuthMember;
-  } catch (e) {
-    clean();
-    throw e;
-  }
+/** Code aus der E-Mail pruefen -> Session speichern, Member zurueckgeben. */
+export async function verifyCode(email: string, code: string): Promise<AuthMember> {
+  const { session, member } = await post('verify', { email, code });
+  store(session);
+  return member as AuthMember;
 }
 
 /** Bestehende Session pruefen -> Member oder null. */

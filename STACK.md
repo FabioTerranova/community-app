@@ -31,7 +31,7 @@
 | `NOTION_TOKEN` | Zugriff auf die Notion-Datenbanken | ✅ |
 | `RESEND_API_KEY` | Login-/News-Mails versenden | ✅ |
 | `NEWS_FROM` | Absender der Login-/News-Mails → **`login@juha.app`** | ✅ (Domain `juha.app` in Resend verifiziert) |
-| `AUTH_SECRET` | signiert Login-/Session-Token (Magic-Link) | ✅ |
+| `AUTH_SECRET` | signiert Session-Token + Login-Codes | ✅ |
 | `NOTION_MEMBERS_DB_ID` | feste DB-ID Mitglieder | optional (sonst Auto-Suche) |
 | `NOTION_EVENTS_DB_ID` | feste DB-ID Termine | optional |
 | `NOTION_ATTENDANCE_DB_ID` | feste DB-ID Anwesenheiten | optional |
@@ -56,4 +56,5 @@
 - ✅ Notion angebunden — 4 DBs verbunden (Mitglieder, Termine, Anwesenheiten, Push-Abos)
 - ✅ Design + Screens live (JUHA-Branding, Login, Home/Termine/Rangliste/Admin, Push)
 - ✅ **Domain `juha.app`**: App-URL + E-Mail-Absender (`login@juha.app`), Login fuer JEDE E-Mail
-- ✅ Magic-Link-Login, Session-Dauer 1 Jahr; Admin = Checkbox „Admin" in DB „Mitglieder"
+- ✅ Login per 6-stelligem Code (kein Link — iPhone-PWA-tauglich), Session-Dauer 1 Jahr;
+  Admin = Checkbox „Admin" in DB „Mitglieder"

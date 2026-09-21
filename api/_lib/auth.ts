@@ -1,9 +1,10 @@
 /**
  * Zustandsloses Login per signierten Tokens (HMAC-SHA256) — kein Sessions-Speicher.
  *
- * Zwei Token-Typen:
- *  - 'login'   : kurzer Magic-Link-Token (~15 min), per E-Mail verschickt.
- *  - 'session' : laengerer Sitzungs-Token (~30 Tage), im Browser (localStorage) gehalten.
+ * Token-Typen:
+ *  - 'session' : Sitzungs-Token (~1 Jahr), im Browser (localStorage) gehalten.
+ *  - 'login'   : (historisch) — der Login laeuft jetzt ueber 6-stellige Codes,
+ *                siehe makeLoginCode/checkLoginCode weiter unten.
  *
  * Env: AUTH_SECRET (langes Geheimnis; bei Vercel setzen).
  */
@@ -53,4 +54,36 @@ export function verifyToken(token: string, expect: 'login' | 'session'): TokenPa
 /** Unix-Sekunden in `seconds` Sekunden ab jetzt. */
 export function nowPlus(seconds: number): number {
   return Math.floor(Date.now() / 1000) + seconds;
+}
+
+/**
+ * Login-Code (6-stellig) — zustandslos aus E-Mail + Zeitfenster abgeleitet (TOTP-artig).
+ * Kein Server-Speicher noetig: derselbe Code laesst sich beim Pruefen neu berechnen.
+ * Gueltig fuers aktuelle + vorherige Fenster -> ~10–20 Minuten.
+ */
+const CODE_STEP_SECONDS = 600; // 10-Minuten-Fenster
+
+function codeForStep(email: string, step: number): string {
+  const mac = createHmac('sha256', secret()).update(`code:${email}:${step}`).digest();
+  const num = mac.readUInt32BE(0) % 1_000_000;
+  return num.toString().padStart(6, '0');
+}
+
+/** Aktuellen Login-Code fuer eine E-Mail erzeugen (zum Versenden). */
+export function makeLoginCode(email: string): string {
+  return codeForStep(email, Math.floor(Date.now() / 1000 / CODE_STEP_SECONDS));
+}
+
+/** Prueft den eingegebenen Code gegen aktuelles + vorheriges Fenster. */
+export function checkLoginCode(email: string, code: string): boolean {
+  const c = String(code || '').replace(/\D/g, '');
+  if (c.length !== 6) return false;
+  const step = Math.floor(Date.now() / 1000 / CODE_STEP_SECONDS);
+  for (const s of [step, step - 1]) {
+    const expected = codeForStep(email, s);
+    const a = new Uint8Array(Buffer.from(c));
+    const b = new Uint8Array(Buffer.from(expected));
+    if (a.length === b.length && timingSafeEqual(a, b)) return true;
+  }
+  return false;
 }

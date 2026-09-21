@@ -1,6 +1,7 @@
 /**
- * Login-Screen: E-Mail eingeben -> Magic-Link anfordern. Der eigentliche Login
- * passiert danach ueber den Link in der E-Mail (App laedt mit ?token= und meldet an).
+ * Login-Screen: Name + E-Mail eingeben -> 6-stelligen Code per E-Mail anfordern,
+ * dann den Code hier in der App eingeben. Kein Link (funktioniert so auch in der
+ * installierten iPhone-PWA, die einen eigenen Speicher getrennt von Safari hat).
  */
 import React, { useMemo, useState } from 'react';
 import {
@@ -17,14 +18,21 @@ import { APP_MAX_WIDTH, radius, spacing, type Palette } from '../theme';
 import { useTheme } from '../ThemeContext';
 import { Button, Card } from '../components/ui';
 import { DoveMark } from '../components/icons';
-import { requestLogin } from '../logic/auth';
+import { requestLogin, verifyCode, type AuthMember } from '../logic/auth';
 
-export function LoginScreen({ initialError }: { initialError?: string | null }) {
+export function LoginScreen({
+  initialError,
+  onAuthenticated,
+}: {
+  initialError?: string | null;
+  onAuthenticated: (m: AuthMember) => void;
+}) {
   const { colors } = useTheme();
   const s = useMemo(() => makeStyles(colors), [colors]);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [status, setStatus] = useState<'idle' | 'sending' | 'sent'>('idle');
+  const [code, setCode] = useState('');
+  const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'verifying'>('idle');
   const [error, setError] = useState<string | null>(initialError ?? null);
 
   async function submit() {
@@ -40,7 +48,24 @@ export function LoginScreen({ initialError }: { initialError?: string | null }) 
       setStatus('sent');
     } catch (e: any) {
       setStatus('idle');
-      setError(e?.message || 'Konnte den Link nicht senden.');
+      setError(e?.message || 'Konnte den Code nicht senden.');
+    }
+  }
+
+  async function submitCode() {
+    const c = code.replace(/\D/g, '');
+    if (c.length !== 6) {
+      setError('Bitte den 6-stelligen Code eingeben.');
+      return;
+    }
+    setError(null);
+    setStatus('verifying');
+    try {
+      const member = await verifyCode(email.trim(), c);
+      onAuthenticated(member);
+    } catch (e: any) {
+      setStatus('sent');
+      setError(e?.message || 'Code ungueltig oder abgelaufen.');
     }
   }
 
@@ -68,19 +93,42 @@ export function LoginScreen({ initialError }: { initialError?: string | null }) 
           </View>
 
           <Card style={s.card}>
-            {status === 'sent' ? (
+            {status === 'sent' || status === 'verifying' ? (
               <>
-                <Text style={s.title}>Mail ist unterwegs 📬</Text>
+                <Text style={s.title}>Code eingeben 🔑</Text>
                 <Text style={s.body}>
-                  Wir haben dir einen Anmelde-Link an{'\n'}
-                  <Text style={s.bold}>{email.trim()}</Text> geschickt. Öffne die Mail und tippe auf
-                  „Jetzt anmelden".
+                  Wir haben dir einen 6-stelligen Code an{'\n'}
+                  <Text style={s.bold}>{email.trim()}</Text> geschickt. Gib ihn hier ein.
                 </Text>
+                <TextInput
+                  value={code}
+                  onChangeText={(t) => setCode(t.replace(/\D/g, '').slice(0, 6))}
+                  placeholder="123456"
+                  placeholderTextColor={colors.mutedForeground}
+                  keyboardType="number-pad"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  textContentType="oneTimeCode"
+                  maxLength={6}
+                  editable={status !== 'verifying'}
+                  onSubmitEditing={submitCode}
+                  style={s.codeInput}
+                />
+                {error ? <Text style={s.error}>{error}</Text> : null}
+                {status === 'verifying' ? (
+                  <View style={s.sending}>
+                    <ActivityIndicator color={colors.accent} />
+                    <Text style={s.sendingText}>Wird geprüft…</Text>
+                  </View>
+                ) : (
+                  <Button label="Anmelden" onPress={submitCode} />
+                )}
                 <Button
                   label="Andere E-Mail verwenden"
                   variant="ghost"
                   onPress={() => {
                     setStatus('idle');
+                    setCode('');
                     setError(null);
                   }}
                 />
@@ -89,8 +137,8 @@ export function LoginScreen({ initialError }: { initialError?: string | null }) 
               <>
                 <Text style={s.title}>Anmelden</Text>
                 <Text style={s.body}>
-                  Gib deinen Namen und deine E-Mail ein — du bekommst einen Link zum Anmelden. Kein
-                  Passwort nötig.
+                  Gib deinen Namen und deine E-Mail ein — du bekommst einen 6-stelligen Code zum
+                  Anmelden. Kein Passwort nötig.
                 </Text>
                 <TextInput
                   value={name}
@@ -122,7 +170,7 @@ export function LoginScreen({ initialError }: { initialError?: string | null }) 
                     <Text style={s.sendingText}>Link wird gesendet…</Text>
                   </View>
                 ) : (
-                  <Button label="Magic-Link senden" onPress={submit} />
+                  <Button label="Code senden" onPress={submit} />
                 )}
               </>
             )}
@@ -165,6 +213,19 @@ function makeStyles(colors: Palette) {
       paddingHorizontal: spacing.md,
       paddingVertical: 14,
       fontSize: 16,
+      color: colors.foreground,
+      backgroundColor: colors.surfaceAlt,
+    },
+    codeInput: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: radius.md,
+      paddingHorizontal: spacing.md,
+      paddingVertical: 14,
+      fontSize: 28,
+      fontWeight: '800',
+      letterSpacing: 10,
+      textAlign: 'center',
       color: colors.foreground,
       backgroundColor: colors.surfaceAlt,
     },

@@ -11,27 +11,20 @@ import {
   updatePage,
 } from './_lib/notion';
 import { MEMBERS, envId } from './_lib/schema';
-import { nowPlus, signToken, verifyToken } from './_lib/auth';
+import { checkLoginCode, makeLoginCode, nowPlus, signToken, verifyToken } from './_lib/auth';
 
 /**
- * Passwortloses Login (Magic-Link):
- *   POST /api/auth {action:'request', email}   -> schickt Login-Link per E-Mail
- *   POST /api/auth {action:'verify',  token}   -> { ok, session, member }
- *   POST /api/auth {action:'me',      session} -> { ok, member }
+ * Passwortloses Login per 6-stelligem Code (kein Link — funktioniert auch in der
+ * installierten iPhone-PWA, die einen eigenen Speicher getrennt von Safari hat):
+ *   POST /api/auth {action:'request', email, name?} -> schickt einen Code per E-Mail
+ *   POST /api/auth {action:'verify',  email, code}  -> { ok, session, member }
+ *   POST /api/auth {action:'me',      session}      -> { ok, member }
  *
  * Env: NOTION_TOKEN, RESEND_API_KEY, NEWS_FROM, AUTH_SECRET.
- * Hinweis: Solange die Resend-Absenderdomain nicht verifiziert ist, kann Resend
- * nur an die eigene Konto-Adresse senden (Test) — dann nur mit dieser Mail testbar.
  */
 
 const escapeHtml = (s: unknown): string =>
   String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-
-function origin(req: VercelRequest): string {
-  const host = (req.headers['x-forwarded-host'] as string) || (req.headers.host as string) || '';
-  const proto = (req.headers['x-forwarded-proto'] as string) || 'https';
-  return `${proto}://${host}`;
-}
 
 async function membersDb(token: string): Promise<{ dbId: string; titleProp: string }> {
   const dbId = await resolveDatabaseId(token, MEMBERS.match, envId(MEMBERS));
@@ -94,30 +87,35 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         member = { ...member, name: providedName };
       }
 
-      const loginToken = signToken({ p: 'login', e: email, exp: nowPlus(15 * 60) });
-      const link = `${origin(req)}/?token=${encodeURIComponent(loginToken)}`;
+      const code = makeLoginCode(email);
       const from = process.env.NEWS_FROM || 'onboarding@resend.dev';
       const resend = new Resend(resendKey);
       await resend.emails.send({
         from,
         to: email,
-        subject: 'Dein JUHA-Login',
+        subject: `Dein JUHA-Code: ${code}`,
+        // Klartext-Teil zusaetzlich zum HTML (multipart) -> bessere Spam-Einstufung.
+        text: `Hi ${member.name},\n\ndein JUHA-Anmeldecode lautet:\n\n${code}\n\nGib ihn in der App ein. Der Code gilt etwa 10 Minuten. Wenn du das nicht warst, ignoriere die Mail einfach.`,
         html: `<div style="font-family:sans-serif;line-height:1.6;max-width:480px">
           <h2 style="color:#DE3E79;margin:0 0 8px">JUHA · Anmelden</h2>
-          <p>Hi ${escapeHtml(member.name)}, tippe auf den Button, um dich anzumelden:</p>
-          <p style="margin:20px 0"><a href="${link}" style="background:#DE3E79;color:#fff;padding:12px 22px;border-radius:10px;text-decoration:none;font-weight:bold;display:inline-block">Jetzt anmelden</a></p>
-          <p style="color:#888;font-size:13px">Der Link gilt 15 Minuten. Wenn du das nicht warst, ignoriere die Mail einfach.</p>
+          <p>Hi ${escapeHtml(member.name)}, dein Anmeldecode lautet:</p>
+          <p style="margin:20px 0"><span style="display:inline-block;background:#FBE6EE;color:#DE3E79;padding:14px 26px;border-radius:12px;font-size:30px;font-weight:bold;letter-spacing:8px">${code}</span></p>
+          <p style="color:#888;font-size:13px">Gib den Code in der App ein. Er gilt etwa 10 Minuten. Wenn du das nicht warst, ignoriere die Mail einfach.</p>
         </div>`,
       });
       return res.status(200).json({ ok: true });
     }
 
     if (action === 'verify') {
-      const payload = verifyToken(body.token, 'login');
+      const email = String(body.email || '').trim().toLowerCase();
+      const code = String(body.code || '');
+      if (!checkLoginCode(email, code)) {
+        return res.status(401).json({ ok: false, reason: 'Code ungueltig oder abgelaufen.' });
+      }
       const { dbId, titleProp } = await membersDb(token);
-      const member = await findByEmail(token, dbId, titleProp, payload.e);
+      const member = await findByEmail(token, dbId, titleProp, email);
       if (!member) return res.status(401).json({ ok: false, reason: 'Mitglied nicht gefunden.' });
-      const session = signToken({ p: 'session', e: payload.e, m: member.id, exp: nowPlus(365 * 24 * 3600) });
+      const session = signToken({ p: 'session', e: email, m: member.id, exp: nowPlus(365 * 24 * 3600) });
       return res.status(200).json({ ok: true, session, member });
     }
 

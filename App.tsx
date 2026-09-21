@@ -14,7 +14,7 @@ import {
 } from './src/data/mock';
 import { getDailyVerse } from './src/logic/api';
 import { disablePushForEvent, enablePushForEvent, isPushSupported } from './src/logic/push';
-import { consumeMagicLink, logout, restoreSession, type AuthMember } from './src/logic/auth';
+import { logout, restoreSession, type AuthMember } from './src/logic/auth';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { useWebFont } from './src/useWebFont';
 import { TabBar, type TabDef, type TabKey } from './src/components/TabBar';
@@ -58,7 +58,7 @@ function AppInner() {
     return map;
   });
 
-  // --- Login (Magic-Link) ---
+  // --- Login (Code per E-Mail) ---
   const [authMember, setAuthMember] = useState<AuthMember | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
@@ -92,12 +92,18 @@ function AppInner() {
     if (currentMemberId) setAvatars((prev) => ({ ...prev, [currentMemberId]: emoji }));
   }
 
-  // Beim Start: Magic-Link aus der URL einloesen, sonst bestehende Session pruefen.
+  // Eingeloggtes Mitglied uebernehmen (aus dem Login-Screen nach Code-Eingabe).
+  function handleAuthenticated(m: AuthMember) {
+    setAuthMember(m);
+    mergeMember(m);
+  }
+
+  // Beim Start: bestehende Session pruefen (Login selbst laeuft per Code im Login-Screen).
   useEffect(() => {
     let alive = true;
     (async () => {
       try {
-        const m = (await consumeMagicLink()) || (await restoreSession());
+        const m = await restoreSession();
         if (alive && m) {
           setAuthMember(m);
           mergeMember(m);
@@ -208,9 +214,9 @@ function AppInner() {
     return <View style={{ flex: 1, backgroundColor: colors.background }} />;
   }
 
-  // Nicht eingeloggt -> Login-Screen (Magic-Link).
+  // Nicht eingeloggt -> Login-Screen (Code per E-Mail).
   if (!authMember) {
-    return <LoginScreen initialError={authError} />;
+    return <LoginScreen initialError={authError} onAuthenticated={handleAuthenticated} />;
   }
 
   return (

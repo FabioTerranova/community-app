@@ -88,7 +88,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       const code = makeLoginCode(email);
-      const from = process.env.NEWS_FROM || 'onboarding@resend.dev';
+      // Freundlicher Absender-Name wirkt vertrauenswuerdiger (weniger Spam-Verdacht).
+      // Nur ergaenzen, wenn NEWS_FROM nicht schon einen Anzeigenamen enthaelt.
+      const fromRaw = process.env.NEWS_FROM || 'onboarding@resend.dev';
+      const from = fromRaw.includes('<') ? fromRaw : `JUHA <${fromRaw}>`;
       const resend = new Resend(resendKey);
       await resend.emails.send({
         from,

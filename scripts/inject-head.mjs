@@ -63,8 +63,8 @@ if (!html.includes('name="theme-color"')) {
     <link rel="icon" type="image/svg+xml" href="./icon.svg" />
     <link rel="apple-touch-icon" href="./icon.svg" />
     <style>
-      /* Wie im Browser: Statusleiste ist ein eigener Balken (status-bar-style
-         "default"), der Inhalt sitzt DARUNTER. Kein viewport-fit=cover, kein
+      /* Wie im Browser: Statusleiste ist ein eigener Balken (Style "default"),
+         der Inhalt sitzt DARUNTER. Ohne Rand-unter-Statusleiste-Modus und ohne
          Safe-Area-Padding -> die installierte App verhaelt sich wie die Browser-
          Ansicht, die schon gut aussieht. Grundfarbe in Marken-Farbe. */
       html, body { background: ${ACCENT}; }

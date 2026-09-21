@@ -8,7 +8,9 @@
 
 | Projekt | Ort (lokal) | GitHub | Vercel-Projekt | Domain |
 |---|---|---|---|---|
-| **community-app** | `C:\dev\community-app` | `FabioTerranova/community-app` *(anzulegen)* | community-app *(anzulegen)* | *(offen)* |
+| **community-app** (JUHA) | `C:\dev\Privat\community-app` | `FabioTerranova/community-app` | community-app | **juha.app** |
+
+**App-URL:** https://juha.app (auch `www.juha.app`) · Fallback/Deploy-URL: `community-app-flame-two.vercel.app`
 
 **Deploy-Prinzip:** `git push` auf `main` → Vercel baut & deployt automatisch (~30–60 s).
 ⚠️ Commit-Autor-Mail muss **`fabio.terranova@kulmgroup.com`** sein (sonst blockt Vercel).
@@ -27,8 +29,9 @@
 | Variable | Zweck | Pflicht |
 |---|---|---|
 | `NOTION_TOKEN` | Zugriff auf die Notion-Datenbanken | ✅ |
-| `RESEND_API_KEY` | News-Mails versenden | ✅ (fuer News) |
-| `NEWS_FROM` | Absender der News-Mails | optional (Default `onboarding@resend.dev`) |
+| `RESEND_API_KEY` | Login-/News-Mails versenden | ✅ |
+| `NEWS_FROM` | Absender der Login-/News-Mails → **`login@juha.app`** | ✅ (Domain `juha.app` in Resend verifiziert) |
+| `AUTH_SECRET` | signiert Login-/Session-Token (Magic-Link) | ✅ |
 | `NOTION_MEMBERS_DB_ID` | feste DB-ID Mitglieder | optional (sonst Auto-Suche) |
 | `NOTION_EVENTS_DB_ID` | feste DB-ID Termine | optional |
 | `NOTION_ATTENDANCE_DB_ID` | feste DB-ID Anwesenheiten | optional |
@@ -49,7 +52,8 @@
 
 - ✅ Grundgeruest + Backend voll implementiert (Mitglieder/Termine/Anwesenheit/News/Unterschrift)
 - ✅ Beide Typechecks gruen, Web-Build baut
-- ✅ GitHub-Repo (public) + erster Push
-- ⬜ Vercel-Projekt importieren + Env-Vars setzen
-- ⬜ Notion-Datenbanken anlegen + mit Integration teilen
-- ⬜ Design (Farben/Screens/Navigation) — der bewusst aufgesparte Teil
+- ✅ GitHub-Repo (public) + Vercel-Deploy live
+- ✅ Notion angebunden — 4 DBs verbunden (Mitglieder, Termine, Anwesenheiten, Push-Abos)
+- ✅ Design + Screens live (JUHA-Branding, Login, Home/Termine/Rangliste/Admin, Push)
+- ✅ **Domain `juha.app`**: App-URL + E-Mail-Absender (`login@juha.app`), Login fuer JEDE E-Mail
+- ✅ Magic-Link-Login, Session-Dauer 1 Jahr; Admin = Checkbox „Admin" in DB „Mitglieder"

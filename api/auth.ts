@@ -117,7 +117,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const { dbId, titleProp } = await membersDb(token);
       const member = await findByEmail(token, dbId, titleProp, payload.e);
       if (!member) return res.status(401).json({ ok: false, reason: 'Mitglied nicht gefunden.' });
-      const session = signToken({ p: 'session', e: payload.e, m: member.id, exp: nowPlus(30 * 24 * 3600) });
+      const session = signToken({ p: 'session', e: payload.e, m: member.id, exp: nowPlus(365 * 24 * 3600) });
       return res.status(200).json({ ok: true, session, member });
     }
 

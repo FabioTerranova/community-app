@@ -43,19 +43,20 @@ if (!html.includes('name="theme-color"')) {
   const inject = `    <meta name="theme-color" content="${ACCENT}" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="JUHA" />
     <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="icon" type="image/svg+xml" href="./icon.svg" />
     <link rel="apple-touch-icon" href="./icon.svg" />
     <style>
-      /* App fuellt den ganzen Screen; die Safe-Areas (Notch oben, Home-Indikator
-         unten) werden vom App-Rahmen selbst gepolstert -> der App-Verlauf laeuft
-         bis an die Kanten, KEINE grauen/pinken Streifen. */
+      /* Randlos wie eine echte App: die App fuellt den GANZEN Screen inkl. der
+         Safe-Areas (Notch oben, Home-Indikator unten). Die Grundfarbe folgt dem
+         Theme (per JS in ThemeContext gesetzt) -> hell/dunkel ueberall gleich,
+         keine abweichenden Streifen. Startwert = helles Theme (kein Flackern). */
       html, body { margin: 0; height: 100%; background: #F5F6F8; }
       #root { min-height: 100dvh; display: flex; }
-      /* Der App-Rahmen (View mit nativeID="appframe") bekommt die Safe-Area-Insets.
-         ID-Selektor schlaegt die generierten Klassen -> zuverlaessig. */
+      /* App-Rahmen (View mit nativeID="appframe") polstert die Safe-Areas selbst,
+         der App-Verlauf laeuft dahinter bis an die Kanten. ID schlaegt Klassen. */
       #appframe {
         padding-top: env(safe-area-inset-top);
         padding-bottom: env(safe-area-inset-bottom);
@@ -77,8 +78,8 @@ const manifest = {
   scope: '.',
   display: 'standalone',
   orientation: 'portrait',
-  background_color: ACCENT,
-  theme_color: ACCENT,
+  background_color: '#F5F6F8',
+  theme_color: '#F5F6F8',
   icons: [
     { src: './icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
     { src: './icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'maskable' },

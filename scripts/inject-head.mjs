@@ -43,15 +43,23 @@ if (!html.includes('name="theme-color"')) {
   const inject = `    <meta name="theme-color" content="${ACCENT}" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="JUHA" />
     <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="icon" type="image/svg+xml" href="./icon.svg" />
     <link rel="apple-touch-icon" href="./icon.svg" />
     <style>
-      /* Rahmen/Safe-Areas in Marken-Farbe -> Header/Footer nicht weiss. */
-      html, body { background: ${ACCENT}; }
-      #root { min-height: 100vh; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
+      /* App fuellt den ganzen Screen; die Safe-Areas (Notch oben, Home-Indikator
+         unten) werden vom App-Rahmen selbst gepolstert -> der App-Verlauf laeuft
+         bis an die Kanten, KEINE grauen/pinken Streifen. */
+      html, body { margin: 0; height: 100%; background: #F5F6F8; }
+      #root { min-height: 100dvh; display: flex; }
+      /* Der App-Rahmen (View mit nativeID="appframe") bekommt die Safe-Area-Insets.
+         ID-Selektor schlaegt die generierten Klassen -> zuverlaessig. */
+      #appframe {
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
+      }
     </style>
   </head>`;
   html = html.replace('</head>', inject);

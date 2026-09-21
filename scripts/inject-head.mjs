@@ -49,18 +49,9 @@ if (!html.includes('name="theme-color"')) {
     <link rel="icon" type="image/svg+xml" href="./icon.svg" />
     <link rel="apple-touch-icon" href="./icon.svg" />
     <style>
-      /* Randlos wie eine echte App: die App fuellt den GANZEN Screen inkl. der
-         Safe-Areas (Notch oben, Home-Indikator unten). Die Grundfarbe folgt dem
-         Theme (per JS in ThemeContext gesetzt) -> hell/dunkel ueberall gleich,
-         keine abweichenden Streifen. Startwert = helles Theme (kein Flackern). */
-      html, body { margin: 0; height: 100%; background: #F5F6F8; }
-      #root { min-height: 100dvh; display: flex; }
-      /* App-Rahmen (View mit nativeID="appframe") polstert die Safe-Areas selbst,
-         der App-Verlauf laeuft dahinter bis an die Kanten. ID schlaegt Klassen. */
-      #appframe {
-        padding-top: env(safe-area-inset-top);
-        padding-bottom: env(safe-area-inset-bottom);
-      }
+      /* Rahmen/Safe-Areas in Marken-Farbe -> Header/Footer nicht weiss. */
+      html, body { background: ${ACCENT}; }
+      #root { min-height: 100vh; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
     </style>
   </head>`;
   html = html.replace('</head>', inject);
@@ -78,8 +69,8 @@ const manifest = {
   scope: '.',
   display: 'standalone',
   orientation: 'portrait',
-  background_color: '#F5F6F8',
-  theme_color: '#F5F6F8',
+  background_color: ACCENT,
+  theme_color: ACCENT,
   icons: [
     { src: './icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
     { src: './icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'maskable' },

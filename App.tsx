@@ -223,7 +223,7 @@ function AppInner() {
     // Backdrop fuellt am PC den Rest; die App selbst bleibt eine zentrierte, schmale Spalte.
     <SafeAreaView style={s.backdrop}>
       <StatusBar style={mode === 'dark' ? 'light' : 'dark'} />
-      <View nativeID="appframe" style={s.frame}>
+      <View style={s.frame}>
         {/* Sanfter Verlauf-Hintergrund (statt Vollton). */}
         <LinearGradient
           colors={colors.bgGradient}

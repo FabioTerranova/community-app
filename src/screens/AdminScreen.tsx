@@ -1,10 +1,18 @@
-import React, { useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import type { AttendanceRecord } from '../types';
 import { radius, spacing, type Palette } from '../theme';
 import { useTheme } from '../ThemeContext';
 import { formatDate } from '../logic/format';
-import { Avatar, Card } from '../components/ui';
+import { Avatar, Button, Card } from '../components/ui';
 import { CheckIcon, CloseIcon } from '../components/icons';
 import type { ScreenData } from './HomeScreen';
 
@@ -13,7 +21,15 @@ import type { ScreenData } from './HomeScreen';
  * Fuer jeden angemeldeten Teilnehmer: "War da" (+1 Punkt) oder "Nicht da" (kein Punkt).
  * UX: offene Eintraege sind klar hervorgehoben, Erledigtes tritt zurueck.
  */
-export function AdminScreen({ members, events, records, today, onSetStatus, avatars }: ScreenData) {
+export function AdminScreen({
+  members,
+  events,
+  records,
+  today,
+  onSetStatus,
+  onCreateEvent,
+  avatars,
+}: ScreenData) {
   const { colors } = useTheme();
   const s = useMemo(() => makeStyles(colors), [colors]);
 
@@ -38,6 +54,7 @@ export function AdminScreen({ members, events, records, today, onSetStatus, avat
 
   return (
     <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
+      {onCreateEvent ? <NewEventForm onCreate={onCreateEvent} /> : null}
       <Text style={s.h1}>Anwesenheit</Text>
       <View style={s.statusRow}>
         {pendingCount > 0 ? (
@@ -103,6 +120,90 @@ export function AdminScreen({ members, events, records, today, onSetStatus, avat
         );
       })}
     </ScrollView>
+  );
+}
+
+/** Admin-Formular: neuen Termin anlegen (schreibt via onCreate nach Notion). */
+function NewEventForm({
+  onCreate,
+}: {
+  onCreate: (input: { title: string; date: string; location?: string }) => Promise<void>;
+}) {
+  const { colors } = useTheme();
+  const s = useMemo(() => makeStyles(colors), [colors]);
+  const [title, setTitle] = useState('');
+  const [date, setDate] = useState('');
+  const [location, setLocation] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  async function submit() {
+    const t = title.trim();
+    const d = date.trim();
+    if (!t) {
+      setMsg('Bitte einen Titel eingeben.');
+      return;
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) {
+      setMsg('Datum im Format JJJJ-MM-TT (z. B. 2026-10-02).');
+      return;
+    }
+    setMsg(null);
+    setSaving(true);
+    try {
+      await onCreate({ title: t, date: d, location: location.trim() || undefined });
+      setTitle('');
+      setDate('');
+      setLocation('');
+      setMsg('Termin angelegt ✓');
+    } catch (e: any) {
+      setMsg(e?.message || 'Konnte den Termin nicht anlegen.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <View style={{ marginBottom: spacing.lg }}>
+      <Text style={s.h1}>Neuer Termin</Text>
+      <Card style={{ gap: spacing.sm, marginTop: spacing.sm }}>
+        <TextInput
+          value={title}
+          onChangeText={setTitle}
+          placeholder="Titel (z. B. Jugendgruppe)"
+          placeholderTextColor={colors.mutedForeground}
+          editable={!saving}
+          style={s.input}
+        />
+        <TextInput
+          value={date}
+          onChangeText={setDate}
+          placeholder="Datum JJJJ-MM-TT"
+          placeholderTextColor={colors.mutedForeground}
+          autoCapitalize="none"
+          autoCorrect={false}
+          editable={!saving}
+          style={s.input}
+        />
+        <TextInput
+          value={location}
+          onChangeText={setLocation}
+          placeholder="Ort (optional)"
+          placeholderTextColor={colors.mutedForeground}
+          editable={!saving}
+          style={s.input}
+        />
+        {msg ? <Text style={s.formMsg}>{msg}</Text> : null}
+        {saving ? (
+          <View style={s.savingRow}>
+            <ActivityIndicator color={colors.accent} />
+            <Text style={s.sub}>Wird gespeichert…</Text>
+          </View>
+        ) : (
+          <Button label="Termin anlegen" onPress={submit} />
+        )}
+      </Card>
+    </View>
   );
 }
 
@@ -182,6 +283,19 @@ function makeStyles(colors: Palette) {
     },
     statusPillText: { fontSize: 12, fontWeight: '800' },
     sub: { fontSize: 13, color: colors.mutedForeground, flex: 1 },
+
+    input: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: radius.md,
+      paddingHorizontal: spacing.md,
+      paddingVertical: 12,
+      fontSize: 15,
+      color: colors.foreground,
+      backgroundColor: colors.surfaceAlt,
+    },
+    formMsg: { fontSize: 13, fontWeight: '600', color: colors.secondary },
+    savingRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: 6 },
 
     eventHead: {
       flexDirection: 'row',

@@ -1,18 +1,19 @@
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useMemo, useState } from 'react';
-import { Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { APP_MAX_WIDTH, radius, spacing, type Palette } from './src/theme';
 import { ThemeProvider, useTheme } from './src/ThemeContext';
-import type { AttendanceRecord, DailyVerse, Member } from './src/types';
+import type { AttendanceRecord, CommunityEvent, DailyVerse, Member } from './src/types';
+import { verseOfDay } from './src/data/mock';
 import {
-  attendance as initialAttendance,
-  events,
-  members as initialMembers,
-  TODAY,
-  verseOfDay,
-} from './src/data/mock';
-import { getDailyVerse } from './src/logic/api';
+  createEvent as apiCreateEvent,
+  getAttendance,
+  getDailyVerse,
+  getEvents,
+  getMembers,
+  setAttendance as apiSetAttendance,
+} from './src/logic/api';
 import { disablePushForEvent, enablePushForEvent, isPushSupported } from './src/logic/push';
 import { logout, restoreSession, type AuthMember } from './src/logic/auth';
 import { LoginScreen } from './src/screens/LoginScreen';
@@ -27,11 +28,12 @@ import { LeaderboardScreen } from './src/screens/LeaderboardScreen';
 import { AdminScreen } from './src/screens/AdminScreen';
 
 /**
- * App-Einstieg — Punkte-/Anwesenheits-System (Mockup mit Beispieldaten).
+ * App-Einstieg — Punkte-/Anwesenheits-System mit LIVE-Daten aus Notion.
  *
  * Kleine State-Machine (kein Router): `tab` steuert den Screen. Beim Start laeuft
- * ein kurzes Intro (Wortmarke). Hell/Dunkel via ThemeProvider. Der Anwesenheits-
- * Zustand lebt zentral, damit Aktionen sich sofort ueberall auswirken.
+ * ein kurzes Intro (Wortmarke). Hell/Dunkel via ThemeProvider. Nach dem Login
+ * werden Mitglieder/Termine/Anwesenheiten aus Notion geladen; An-/Abmelden und
+ * Admin-Bestaetigungen werden direkt zurueck nach Notion gespeichert.
  */
 export default function App() {
   return (
@@ -48,15 +50,18 @@ function AppInner() {
 
   const [showIntro, setShowIntro] = useState(true);
   const [tab, setTab] = useState<TabKey>('home');
-  const [records, setRecords] = useState<AttendanceRecord[]>(initialAttendance);
-  const [members, setMembers] = useState<Member[]>(initialMembers);
 
-  // Emoji-Avatare (memberId -> Emoji), Start aus den Mitglieds-Daten.
-  const [avatars, setAvatars] = useState<Record<string, string>>(() => {
-    const map: Record<string, string> = {};
-    for (const m of initialMembers) if (m.emoji) map[m.id] = m.emoji;
-    return map;
-  });
+  // Live-Daten aus Notion (via src/logic/api). Start leer, wird nach Login geladen.
+  const [records, setRecords] = useState<AttendanceRecord[]>([]);
+  const [members, setMembers] = useState<Member[]>([]);
+  const [events, setEvents] = useState<CommunityEvent[]>([]);
+  const [dataLoaded, setDataLoaded] = useState(false);
+
+  // Emoji-Avatare (memberId -> Emoji); wird aus den geladenen Mitgliedern befuellt.
+  const [avatars, setAvatars] = useState<Record<string, string>>({});
+
+  // "Heute" real (YYYY-MM-DD) -> steuert Vergangenheit/Zukunft der Termine.
+  const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
   // --- Login (Code per E-Mail) ---
   const [authMember, setAuthMember] = useState<AuthMember | null>(null);
@@ -120,6 +125,34 @@ function AppInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Nach Login: echte Daten aus Notion laden (Mitglieder, Termine, Anwesenheiten).
+  useEffect(() => {
+    if (!authMember) return;
+    let alive = true;
+    (async () => {
+      try {
+        const [ms, es, rs] = await Promise.all([getMembers(), getEvents(), getAttendance()]);
+        if (!alive) return;
+        setMembers(ms);
+        setEvents(es);
+        setRecords(rs);
+        setAvatars((prev) => {
+          const map = { ...prev };
+          for (const m of ms) if (m.emoji) map[m.id] = m.emoji;
+          return map;
+        });
+      } catch (e: any) {
+        if (alive) setAuthError(e?.message || 'Daten konnten nicht geladen werden.');
+      } finally {
+        if (alive) setDataLoaded(true);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authMember]);
+
   // Vers des Tages: Platzhalter -> live aus api/verse. Nur uebernehmen, wenn ein
   // echter Vers zurueckkam (in der reinen Web-Vorschau ohne Backend bleibt der Platzhalter).
   const [verse, setVerse] = useState<DailyVerse>(verseOfDay);
@@ -146,22 +179,40 @@ function AppInner() {
         r.eventId === eventId &&
         (r.status === 'yes' || r.status === 'attended'),
     );
+    // Kein Loeschen im Notion-Upsert -> Abmelden = Status 'no' (zaehlt nicht als Zusage).
+    const newStatus: AttendanceRecord['status'] = isSignedUp ? 'no' : 'yes';
+    const me = members.find((m) => m.id === memberId);
+    const ev = events.find((e) => e.id === eventId);
 
+    // Optimistisch lokal setzen ...
+    const prevRecords = records;
     setRecords((prev) => {
       const existing = prev.find((r) => r.memberId === memberId && r.eventId === eventId);
-      if (existing && (existing.status === 'yes' || existing.status === 'attended')) {
-        return prev.filter((r) => r !== existing); // abmelden
-      }
-      if (existing) {
-        return prev.map((r) => (r === existing ? { ...r, status: 'yes' } : r));
-      }
-      return [...prev, { id: `${memberId}__${eventId}`, memberId, eventId, status: 'yes' }];
+      if (existing) return prev.map((r) => (r === existing ? { ...r, status: newStatus } : r));
+      return [...prev, { id: `${memberId}__${eventId}`, memberId, eventId, status: newStatus }];
     });
+    // ... und in Notion speichern (bei Fehler zuruecksetzen).
+    apiSetAttendance({
+      memberId,
+      eventId,
+      status: newStatus,
+      memberName: me?.name,
+      eventTitle: ev?.title,
+    })
+      .then((rec) =>
+        setRecords((prev) =>
+          prev.map((r) => (r.memberId === memberId && r.eventId === eventId ? rec : r)),
+        ),
+      )
+      .catch(() => {
+        setRecords(prevRecords);
+        if (typeof window !== 'undefined') {
+          window.alert('Konnte nicht gespeichert werden. Bitte erneut versuchen.');
+        }
+      });
 
     // Push nur fuers eigene Geraet und nur im Web/PWA-Kontext.
     if (memberId !== currentMemberId || !isPushSupported()) return;
-    const ev = events.find((e) => e.id === eventId);
-    const me = members.find((m) => m.id === memberId);
     const info = {
       memberId,
       memberName: me?.name,
@@ -182,11 +233,30 @@ function AppInner() {
 
   // Admin setzt fuer einen (vergangenen) Termin, ob jemand da war -> vergibt/entzieht Punkt.
   function setStatus(memberId: string, eventId: string, status: AttendanceRecord['status']) {
+    const prevRecords = records;
+    const me = members.find((m) => m.id === memberId);
+    const ev = events.find((e) => e.id === eventId);
     setRecords((prev) => {
       const existing = prev.find((r) => r.memberId === memberId && r.eventId === eventId);
       if (existing) return prev.map((r) => (r === existing ? { ...r, status } : r));
       return [...prev, { id: `${memberId}__${eventId}`, memberId, eventId, status }];
     });
+    apiSetAttendance({ memberId, eventId, status, memberName: me?.name, eventTitle: ev?.title })
+      .then((rec) =>
+        setRecords((prev) =>
+          prev.map((r) => (r.memberId === memberId && r.eventId === eventId ? rec : r)),
+        ),
+      )
+      .catch(() => {
+        setRecords(prevRecords);
+        if (typeof window !== 'undefined') window.alert('Konnte nicht gespeichert werden.');
+      });
+  }
+
+  // Admin legt einen neuen Termin an -> in Notion speichern, lokal einsortieren.
+  async function createEvent(input: { title: string; date: string; location?: string }) {
+    const ev = await apiCreateEvent(input);
+    setEvents((prev) => [...prev, ev].sort((a, b) => a.date.localeCompare(b.date)));
   }
 
   const data: ScreenData = {
@@ -194,9 +264,10 @@ function AppInner() {
     events,
     records,
     currentMemberId,
-    today: TODAY,
+    today,
     onToggleSignup: toggleSignup,
     onSetStatus: setStatus,
+    onCreateEvent: createEvent,
     avatars,
     onSetAvatar: setAvatar,
     verse,
@@ -265,10 +336,18 @@ function AppInner() {
         </View>
 
         <View style={s.body}>
-          {tab === 'home' && <HomeScreen {...data} />}
-          {tab === 'events' && <EventsScreen {...data} />}
-          {tab === 'leaderboard' && <LeaderboardScreen {...data} />}
-          {tab === 'admin' && <AdminScreen {...data} />}
+          {!dataLoaded ? (
+            <View style={s.loading}>
+              <ActivityIndicator color={colors.accent} />
+            </View>
+          ) : (
+            <>
+              {tab === 'home' && <HomeScreen {...data} />}
+              {tab === 'events' && <EventsScreen {...data} />}
+              {tab === 'leaderboard' && <LeaderboardScreen {...data} />}
+              {tab === 'admin' && <AdminScreen {...data} />}
+            </>
+          )}
         </View>
 
         <TabBar tabs={tabs} active={tab} onChange={setTab} />
@@ -292,6 +371,7 @@ function makeStyles(colors: Palette) {
       overflow: 'hidden',
     },
     body: { flex: 1 },
+    loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
     header: {
       flexDirection: 'row',
       alignItems: 'center',

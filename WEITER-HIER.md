@@ -1,49 +1,51 @@
-# 👋 Weiter hier — community-app
+# 👋 Weiter hier — community-app (JUHA)
 
-> Wiedereinstiegs-Punkt. Danach `CLAUDE.md` (Details & Struktur), `STACK.md` (Zugaenge).
+> Wiedereinstiegs-Punkt. Danach `CLAUDE.md` (Struktur), `STACK.md` (Zugaenge),
+> `LOGIN-DOMAIN-EINRICHTEN.md` (Domain/Resend-Setup).
 
-## Stand: Alles fertig ausser Design — technisch live-faehig
+## Stand: LIVE & in Benutzung ✅
 
-Aufgebaut **genau nach dem Muster der `zenit-alpine-app`** (Expo + Vercel + Notion).
-Das komplette **Backend ist implementiert**; es fehlt nur noch UI/UX & Design sowie das
-externe Einrichten (Vercel-Env-Vars + Notion-Datenbanken).
+Die App laeuft unter **https://juha.app** (PWA, iPhone-tauglich) mit **echten
+Notion-Daten**. Login, Domain, Live-Daten und Admin funktionieren.
 
-### Was fertig & verifiziert ist
-- **Projektstruktur** komplett + auf GitHub (public): https://github.com/FabioTerranova/community-app
-- **Domaenen-Modell** `src/types.ts` (Member, CommunityEvent, AttendanceRecord, NewsItem)
-  und **Auswertung** `src/logic/attendance.ts` (wie oft gekommen, Zusagen, kommende Termine).
-- **Backend voll implementiert** (Vercel-Functions):
-  - `api/members.ts` — GET/POST Mitglieder (Notion)
-  - `api/events.ts` — GET/POST Termine (Notion, nach Datum sortiert)
-  - `api/attendance.ts` — GET/POST Anwesenheit, Upsert (eintragen/an-/abmelden)
-  - `api/news.ts` — POST News an aktive Mitglieder via Resend (Testmodus: `NEWS_TEST_TO`)
-  - `api/sign.ts` — POST Unterschrift: pdf-lib erzeugt PDF + Datensatz wird 'attended'
-  - `api/notion-check.ts` — Diagnose; `api/_lib/{notion,schema,attendanceStore}.ts` — Bausteine
-- **Frontend-Client** `src/logic/api.ts` — typsicher, die Screens rufen spaeter NUR diesen.
-- **Verifiziert:** App-Typecheck gruen, api-Typecheck gruen (`tsconfig.api.json`), Web-Build baut.
-- **Launcher** (`claude.bat` etc.) + **Docs** (`CLAUDE.md`, `STACK.md`, `AGENTS.md`).
+### Was live funktioniert
+- **Login passwortlos per 6-stelligem Code** (kein Magic-Link — wichtig fuer die
+  iPhone-PWA, die eigenen Speicher hat). Code kommt per E-Mail (steht im Betreff).
+  **Session 1 Jahr.** Code: `api/auth.ts` (`action:'request'` mailt Code,
+  `action:'verify'` prueft `{email, code}`), zustandslos via `api/_lib/auth.ts`
+  (`makeLoginCode`/`checkLoginCode`, TOTP-artig).
+- **Eigene Domain `juha.app`**: App-Adresse **und** E-Mail-Absender
+  (`NEWS_FROM=login@juha.app`, in Resend verifiziert) -> Login fuer JEDE E-Mail.
+  DNS in Cloudflare. PWA-Head via `scripts/inject-head.mjs`
+  (Statusleiste `default`, kein `viewport-fit=cover` -> installierte App = wie Browser).
+- **Live-Daten aus Notion** (kein Mockup mehr): nach Login werden
+  Mitglieder/Termine/Anwesenheiten geladen (`App.tsx` -> `src/logic/api.ts`).
+  An-/Abmelden und Admin-"war da" werden **direkt nach Notion gespeichert**
+  (optimistisch, Revert bei Fehler). Abmelden = Status `no` (kein Delete im Upsert).
+- **Admin**: Checkbox „Admin" am Mitglied in Notion (DB „Mitglieder"). Admin sieht
+  den Admin-Tab und kann dort **Termine anlegen** (Formular „Neuer Termin"
+  -> `createEvent`) und Anwesenheit bestaetigen.
+- **Mitglieder aktuell**: Fabio, „juuli" (= Julia Oester, **Admin**), „miri".
 
-### ⏸️ PAUSIERT — naechster konkreter Schritt
-**Fabio schickt zuerst ein Mockup / eine Design-Vorstellung.** Reihenfolge bewusst
-so gewaehlt (erst sehen, wie es aussehen soll, dann live):
+### ⏸️ Naechster Schritt / offen
+1. **Fabio traegt die vollen Termine ein** (Admin-Tab -> „Neuer Termin"), sobald die
+   Daten der Gruppe da sind.
+2. **⚠️ „Verantwortliche / Dienste" pro Termin (duties)** sind aktuell **nicht** im
+   Live-Modell — das Termin-Formular hat nur **Titel / Datum / Ort**. Im alten Mockup
+   gab es `duties` (Rolle + Personen, siehe `EventDuties.tsx` / `types.ts` `EventDuty`),
+   aber Notion-Schema (`api/_lib/schema.ts` EVENTS) und `createEvent` kennen sie noch
+   nicht. **Wenn Dienste/Verantwortliche gewuenscht sind, ist das ein kleiner Zusatz-
+   Umbau:** Notion-Spalte (z.B. JSON/rich_text) + Formularfelder im Admin + Anzeige.
+3. Optional: Julias Anzeigename „juuli" -> „Julia Oester" (sie loggt sich neu ein und
+   gibt den vollen Namen an, oder Name in Notion aendern).
+4. Optional/spaeter: Live-Aktualisierung (aktuell sieht man fremde Aenderungen erst
+   nach App-Neuladen); Avatar-Emoji dauerhaft in Notion speichern.
 
-1. **Mockup abwarten** → dann **Design** bauen: Farben/Tokens in `src/theme.ts`, danach
-   Screens (Home, Termine, Anwesenheit/Eintragen, Unterschrift, News) + Navigation in
-   `App.tsx`. Die Screens haengen sich an `src/logic/api.ts` — die Logik steht bereits.
-2. **DANACH erst live schalten (extern, Fabios Konten):**
-   - Vercel: Repo importieren (Framework „Other", Build aus `vercel.json`), dann
-     Env-Vars setzen: `NOTION_TOKEN`, `RESEND_API_KEY`, `NEWS_FROM`, Testmodus `NEWS_TEST_TO`.
-   - Notion: 3 Datenbanken anlegen (Titel enthaelt „Mitglied"/„Termin"/„Anwesenheit"),
-     jeweils mit der Integration teilen. Spalten legt die App automatisch an.
-   - Test: `<deploy-url>/api/notion-check` sollte die 3 Datenbanken zeigen.
+### Deploy-Weg
+`git push` auf `main` -> Vercel baut (`npx expo export --platform web && node
+scripts/inject-head.mjs`) und deployt automatisch. Commit-Autor-Mail: die GitHub-
+Noreply-Adresse funktioniert (Vercel akzeptiert sie).
 
-> Der genaue Vercel/Notion/Resend-Klickpfad wurde bereits Schritt fuer Schritt
-> besprochen — bei Bedarf einfach danach fragen.
-
-### Deploy-Weg (wie Schwester-Projekte)
-`git push` auf `main` → Vercel baut automatisch. ⚠️ Commit-Autor-Mail muss
-`fabio.terranova@kulmgroup.com` sein (sonst „GitHub user not found" bei Vercel).
-
-### Deploy-Weg (wie Schwester-Projekte)
-`git push` auf `main` → Vercel baut automatisch. ⚠️ Commit-Autor-Mail muss
-`fabio.terranova@kulmgroup.com` sein (sonst „GitHub user not found" bei Vercel).
+### Diagnose-URLs
+- `https://community-app-flame-two.vercel.app/api/notion-check` — sieht die Integration die DBs?
+- `.../api/members` · `.../api/events` · `.../api/attendance` — Live-Daten pruefen.

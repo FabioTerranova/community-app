@@ -99,6 +99,11 @@ export function EventsScreen({
                   <Text style={s.meta}>{event.location}</Text>
                 </View>
               ) : null}
+              {event.notes ? (
+                <View style={s.metaRow}>
+                  <Text style={s.meta}>🕒 {event.notes}</Text>
+                </View>
+              ) : null}
               <View style={s.chipsRow}>
                 <CategoryChip label={cat.label} />
                 <Pill

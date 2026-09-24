@@ -49,6 +49,10 @@ export async function createEvent(input: {
   date: string;
   location?: string;
   notes?: string;
+  /** Verantwortliche Vorbereitung (kommagetrennt bei mehreren). */
+  vorbereitung?: string;
+  /** Verantwortliche Snacks (kommagetrennt bei mehreren). */
+  snacks?: string;
 }): Promise<CommunityEvent> {
   return (await call<{ event: CommunityEvent }>('/api/events', { method: 'POST', body: input })).event;
 }

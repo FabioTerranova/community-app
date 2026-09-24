@@ -20,7 +20,13 @@ export interface ScreenData {
   onToggleSignup: (memberId: string, eventId: string) => void;
   onSetStatus: (memberId: string, eventId: string, status: AttendanceRecord['status']) => void;
   /** Admin legt einen neuen Termin an (nur im Admin-Screen genutzt). */
-  onCreateEvent?: (input: { title: string; date: string; location?: string }) => Promise<void>;
+  onCreateEvent?: (input: {
+    title: string;
+    date: string;
+    location?: string;
+    vorbereitung?: string;
+    snacks?: string;
+  }) => Promise<void>;
   /** Emoji-Avatar je Mitglied (memberId -> Emoji). */
   avatars: Record<string, string>;
   onSetAvatar: (emoji: string) => void;

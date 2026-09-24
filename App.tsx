@@ -254,7 +254,13 @@ function AppInner() {
   }
 
   // Admin legt einen neuen Termin an -> in Notion speichern, lokal einsortieren.
-  async function createEvent(input: { title: string; date: string; location?: string }) {
+  async function createEvent(input: {
+    title: string;
+    date: string;
+    location?: string;
+    vorbereitung?: string;
+    snacks?: string;
+  }) {
     const ev = await apiCreateEvent(input);
     setEvents((prev) => [...prev, ev].sort((a, b) => a.date.localeCompare(b.date)));
   }

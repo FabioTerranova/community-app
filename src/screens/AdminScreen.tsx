@@ -127,13 +127,21 @@ export function AdminScreen({
 function NewEventForm({
   onCreate,
 }: {
-  onCreate: (input: { title: string; date: string; location?: string }) => Promise<void>;
+  onCreate: (input: {
+    title: string;
+    date: string;
+    location?: string;
+    vorbereitung?: string;
+    snacks?: string;
+  }) => Promise<void>;
 }) {
   const { colors } = useTheme();
   const s = useMemo(() => makeStyles(colors), [colors]);
   const [title, setTitle] = useState('');
   const [date, setDate] = useState('');
   const [location, setLocation] = useState('');
+  const [vorbereitung, setVorbereitung] = useState('');
+  const [snacks, setSnacks] = useState('');
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
@@ -151,10 +159,18 @@ function NewEventForm({
     setMsg(null);
     setSaving(true);
     try {
-      await onCreate({ title: t, date: d, location: location.trim() || undefined });
+      await onCreate({
+        title: t,
+        date: d,
+        location: location.trim() || undefined,
+        vorbereitung: vorbereitung.trim() || undefined,
+        snacks: snacks.trim() || undefined,
+      });
       setTitle('');
       setDate('');
       setLocation('');
+      setVorbereitung('');
+      setSnacks('');
       setMsg('Termin angelegt ✓');
     } catch (e: any) {
       setMsg(e?.message || 'Konnte den Termin nicht anlegen.');
@@ -189,6 +205,22 @@ function NewEventForm({
           value={location}
           onChangeText={setLocation}
           placeholder="Ort (optional)"
+          placeholderTextColor={colors.mutedForeground}
+          editable={!saving}
+          style={s.input}
+        />
+        <TextInput
+          value={vorbereitung}
+          onChangeText={setVorbereitung}
+          placeholder="Vorbereitung – wer? (optional)"
+          placeholderTextColor={colors.mutedForeground}
+          editable={!saving}
+          style={s.input}
+        />
+        <TextInput
+          value={snacks}
+          onChangeText={setSnacks}
+          placeholder="Snacks – wer? (optional, mehrere mit Komma)"
           placeholderTextColor={colors.mutedForeground}
           editable={!saving}
           style={s.input}

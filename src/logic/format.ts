@@ -86,6 +86,8 @@ export interface EventCategory {
 /** Kategorie eines Termins (aus dem Titel abgeleitet) — fuer farbige Chips + Filter. */
 export function eventCategory(title: string): EventCategory {
   const t = title.toLowerCase();
+  if (t.includes('juha') || t.includes('encounter'))
+    return { key: 'juha', label: 'JUHA', icon: '🔥', color: '#2D9CDB' };
   if (t.includes('gottesdienst') || t.includes('celebration'))
     return { key: 'gottesdienst', label: 'Gottesdienst', icon: '⛪', color: '#E0A72B' };
   if (t.includes('gebet'))

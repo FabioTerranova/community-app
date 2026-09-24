@@ -34,6 +34,10 @@ export const EVENTS: DbConfig = {
     Datum: { date: {} },
     Ort: { rich_text: {} },
     Notizen: { rich_text: {} },
+    // Dienste/Verantwortliche als eigene Spalten (mehrere Personen: kommagetrennt).
+    // Bewusst kein JSON-Blob -> Namen lassen sich direkt in Notion pflegen.
+    Vorbereitung: { rich_text: {} },
+    Snacks: { rich_text: {} },
   },
 };
 

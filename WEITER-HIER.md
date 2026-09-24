@@ -28,14 +28,18 @@ Notion-Daten**. Login, Domain, Live-Daten und Admin funktionieren.
 - **Mitglieder aktuell**: Fabio, „juuli" (= Julia Oester, **Admin**), „miri".
 
 ### ⏸️ Naechster Schritt / offen
-1. **Fabio traegt die vollen Termine ein** (Admin-Tab -> „Neuer Termin"), sobald die
-   Daten der Gruppe da sind.
-2. **⚠️ „Verantwortliche / Dienste" pro Termin (duties)** sind aktuell **nicht** im
-   Live-Modell — das Termin-Formular hat nur **Titel / Datum / Ort**. Im alten Mockup
-   gab es `duties` (Rolle + Personen, siehe `EventDuties.tsx` / `types.ts` `EventDuty`),
-   aber Notion-Schema (`api/_lib/schema.ts` EVENTS) und `createEvent` kennen sie noch
-   nicht. **Wenn Dienste/Verantwortliche gewuenscht sind, ist das ein kleiner Zusatz-
-   Umbau:** Notion-Spalte (z.B. JSON/rich_text) + Formularfelder im Admin + Anzeige.
+1. ✅ **JUHA-Termine sind importiert** (15 Stueck, live in Notion): JUHA Schlanders
+   (11× Fr 18:00–19:30, CGS Zentrum) + JUHA Bozen (Fr 19:00–21:00, Achille-Grandistr.
+   22; inkl. 30.10 „Encounter Night"). Import via `scripts/import-events.mjs`
+   (idempotent, gegen die Live-API; `--dry` moeglich). **Bozen: weitere Termine folgen**
+   laut Plakat — einfach im Admin-Tab „Neuer Termin" oder das Skript ergaenzen.
+2. ✅ **Dienste/Verantwortliche pro Termin sind im Live-Modell.** Umgesetzt als zwei
+   eigene Notion-Spalten **`Vorbereitung`** und **`Snacks`** (mehrere Personen
+   kommagetrennt) in DB „Termine". `api/events.ts` liest/schreibt sie und baut daraus
+   `duties[]` (angezeigt via `EventDuties.tsx`). Aktuell Platzhalter **„offen"** —
+   **echte Namen einfach direkt in Notion** in die Spalten eintragen (oder im Admin-
+   Formular „Neuer Termin", Felder Vorbereitung/Snacks). Hinweis: **Bestehende Termine
+   editieren geht nur in Notion** (das Admin-Formular legt bisher nur neu an).
 3. Optional: Julias Anzeigename „juuli" -> „Julia Oester" (sie loggt sich neu ein und
    gibt den vollen Namen an, oder Name in Notion aendern).
 4. Optional/spaeter: Live-Aktualisierung (aktuell sieht man fremde Aenderungen erst

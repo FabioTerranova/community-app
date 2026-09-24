@@ -29,6 +29,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         name: read.titleText(r.properties?.[titleProp]),
         email: read.email(r.properties?.['E-Mail']) || undefined,
         active: r.properties?.Aktiv ? read.checkbox(r.properties.Aktiv) : true,
+        emoji: read.text(r.properties?.Emoji) || undefined,
+        photoUrl: read.fileUrl(r.properties?.Foto) || undefined,
       }));
       return res.status(200).json({ ok: true, members });
     }

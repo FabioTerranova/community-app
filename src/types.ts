@@ -17,6 +17,8 @@ export interface Member {
   active?: boolean;
   /** Selbst gewaehltes Avatar-Emoji (Spass-Faktor); faellt sonst auf Initialen zurueck. */
   emoji?: string;
+  /** URL des Profilfotos (temporaere Notion-Datei-URL); hat Vorrang vor Emoji/Initialen. */
+  photoUrl?: string;
 }
 
 /**

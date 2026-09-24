@@ -13,6 +13,7 @@ import {
   getEvents,
   getMembers,
   setAttendance as apiSetAttendance,
+  setAvatar as apiSetAvatar,
 } from './src/logic/api';
 import { disablePushForEvent, enablePushForEvent, isPushSupported } from './src/logic/push';
 import { logout, restoreSession, type AuthMember } from './src/logic/auth';
@@ -59,6 +60,8 @@ function AppInner() {
 
   // Emoji-Avatare (memberId -> Emoji); wird aus den geladenen Mitgliedern befuellt.
   const [avatars, setAvatars] = useState<Record<string, string>>({});
+  // Profilfotos (memberId -> temporaere Foto-URL); je Start aus Notion neu geladen.
+  const [photos, setPhotos] = useState<Record<string, string>>({});
 
   // "Heute" real (YYYY-MM-DD) -> steuert Vergangenheit/Zukunft der Termine.
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
@@ -85,6 +88,7 @@ function AppInner() {
         : [...prev, asMember],
     );
     if (m.emoji) setAvatars((prev) => ({ ...prev, [m.id]: m.emoji as string }));
+    // Foto kommt ueber getMembers() (AuthMember traegt es nicht).
   }
 
   function handleLogout() {
@@ -93,8 +97,27 @@ function AppInner() {
     setTab('home');
   }
 
+  // Emoji waehlen: optimistisch lokal setzen und dauerhaft in Notion speichern.
   function setAvatar(emoji: string) {
-    if (currentMemberId) setAvatars((prev) => ({ ...prev, [currentMemberId]: emoji }));
+    if (!currentMemberId) return;
+    const prevEmoji = avatars[currentMemberId];
+    setAvatars((prev) => ({ ...prev, [currentMemberId]: emoji }));
+    apiSetAvatar({ memberId: currentMemberId, emoji }).catch(() => {
+      // Fehler -> zuruecksetzen.
+      setAvatars((prev) => ({ ...prev, [currentMemberId]: prevEmoji ?? '' }));
+    });
+  }
+
+  // Foto hochladen (Base64) -> in Notion speichern, danach frische URL uebernehmen.
+  async function setPhoto(base64: string, contentType?: string) {
+    if (!currentMemberId) return;
+    const { photoUrl } = await apiSetAvatar({ memberId: currentMemberId, photoBase64: base64, contentType });
+    setPhotos((prev) => {
+      const map = { ...prev };
+      if (photoUrl) map[currentMemberId] = photoUrl;
+      else delete map[currentMemberId];
+      return map;
+    });
   }
 
   // Eingeloggtes Mitglied uebernehmen (aus dem Login-Screen nach Code-Eingabe).
@@ -139,6 +162,11 @@ function AppInner() {
         setAvatars((prev) => {
           const map = { ...prev };
           for (const m of ms) if (m.emoji) map[m.id] = m.emoji;
+          return map;
+        });
+        setPhotos((prev) => {
+          const map = { ...prev };
+          for (const m of ms) if (m.photoUrl) map[m.id] = m.photoUrl;
           return map;
         });
       } catch (e: any) {
@@ -276,6 +304,8 @@ function AppInner() {
     onCreateEvent: createEvent,
     avatars,
     onSetAvatar: setAvatar,
+    photos,
+    onSetPhoto: setPhoto,
     verse,
   };
 

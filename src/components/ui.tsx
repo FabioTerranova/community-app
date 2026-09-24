@@ -4,6 +4,7 @@
  */
 import React, { useMemo } from 'react';
 import {
+  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -157,15 +158,21 @@ export function Button({
   );
 }
 
-/** Kreis mit Emoji (falls gewaehlt) oder Initialen; Farbe deterministisch aus dem Namen. */
+/**
+ * Runder Avatar. Vorrang: Foto -> Emoji -> Initialen.
+ * Farbe der Initialen-/Emoji-Flaeche kommt aus dem Theme.
+ */
 export function Avatar({
   name,
   emoji,
+  photo,
   highlight,
   size = 40,
 }: {
   name: string;
   emoji?: string;
+  /** URL/URI eines Profilfotos; hat Vorrang vor Emoji/Initialen. */
+  photo?: string;
   highlight?: boolean;
   size?: number;
 }) {
@@ -187,10 +194,18 @@ export function Avatar({
           backgroundColor: highlight ? colors.accentSoft : colors.surfaceAlt,
           borderWidth: highlight ? 1.5 : 0,
           borderColor: colors.accent,
+          overflow: 'hidden',
         },
       ]}
     >
-      {emoji ? (
+      {photo ? (
+        <Image
+          source={{ uri: photo }}
+          style={{ width: size, height: size, borderRadius: size / 2 }}
+          resizeMode="cover"
+          accessibilityLabel={`Foto von ${name}`}
+        />
+      ) : emoji ? (
         <Text style={{ fontSize: size * 0.5 }}>{emoji}</Text>
       ) : (
         <Text

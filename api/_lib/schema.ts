@@ -24,6 +24,8 @@ export const MEMBERS: DbConfig = {
     Aktiv: { checkbox: {} },
     Emoji: { rich_text: {} },
     Admin: { checkbox: {} },
+    // Profilfoto (Notion-Datei-Upload). URL ist temporaer -> je GET frisch geladen.
+    Foto: { files: {} },
   },
 };
 

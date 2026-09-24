@@ -1,9 +1,10 @@
-import React, { useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { radius, shadow, spacing, type Palette } from '../theme';
 import { useTheme } from '../ThemeContext';
 import { leaderboard, memberPoints, milestoneProgress, milestonesFor } from '../logic/points';
 import { Avatar, Card, Divider, ProgressBar, SectionTitle } from '../components/ui';
+import { canPickPhoto, pickPhoto } from '../logic/photo';
 import {
   CalendarIcon,
   ShieldIcon,
@@ -28,6 +29,8 @@ export function LeaderboardScreen({
   currentMemberId,
   avatars,
   onSetAvatar,
+  photos,
+  onSetPhoto,
 }: ScreenData) {
   const { colors } = useTheme();
   const s = useMemo(() => makeStyles(colors), [colors]);
@@ -39,6 +42,35 @@ export function LeaderboardScreen({
   const progress = milestoneProgress(myPoints);
   const milestones = milestonesFor(myPoints);
   const myEmoji = avatars[currentMemberId];
+  const myPhoto = photos[currentMemberId];
+
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const [photoMsg, setPhotoMsg] = useState<string | null>(null);
+
+  async function choosePhoto() {
+    setPhotoMsg(null);
+    setPhotoBusy(true);
+    try {
+      const picked = await pickPhoto();
+      if (picked) await onSetPhoto(picked.base64, picked.contentType);
+    } catch (e: any) {
+      setPhotoMsg(e?.message || 'Foto konnte nicht gespeichert werden.');
+    } finally {
+      setPhotoBusy(false);
+    }
+  }
+
+  async function removePhoto() {
+    setPhotoMsg(null);
+    setPhotoBusy(true);
+    try {
+      await onSetPhoto('');
+    } catch (e: any) {
+      setPhotoMsg(e?.message || 'Foto konnte nicht entfernt werden.');
+    } finally {
+      setPhotoBusy(false);
+    }
+  }
 
   return (
     <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
@@ -49,7 +81,7 @@ export function LeaderboardScreen({
       <FadeSlide delay={40}>
         <Card style={{ gap: spacing.md }}>
           <View style={s.meRow}>
-            <Avatar name={me.name} emoji={myEmoji} highlight size={54} />
+            <Avatar name={me.name} emoji={myEmoji} photo={myPhoto} highlight size={54} />
             <View style={{ flex: 1 }}>
               <Text style={s.meName}>{me.name}</Text>
               <Text style={s.meMeta}>
@@ -112,6 +144,42 @@ export function LeaderboardScreen({
               })}
             </View>
           </View>
+
+          <Divider />
+          <View>
+            <Text style={s.pickHint}>Dein Foto</Text>
+            {canPickPhoto() ? (
+              <View style={s.photoRow}>
+                <Pressable
+                  onPress={choosePhoto}
+                  disabled={photoBusy}
+                  accessibilityRole="button"
+                  accessibilityLabel="Foto auswählen"
+                  style={[s.photoBtn, photoBusy && { opacity: 0.6 }]}
+                >
+                  {photoBusy ? (
+                    <ActivityIndicator size="small" color={colors.accent} />
+                  ) : (
+                    <Text style={s.photoBtnText}>📷 {myPhoto ? 'Foto ändern' : 'Foto hochladen'}</Text>
+                  )}
+                </Pressable>
+                {myPhoto ? (
+                  <Pressable
+                    onPress={removePhoto}
+                    disabled={photoBusy}
+                    accessibilityRole="button"
+                    accessibilityLabel="Foto entfernen"
+                    style={s.photoRemoveBtn}
+                  >
+                    <Text style={s.photoRemoveText}>Entfernen</Text>
+                  </Pressable>
+                ) : null}
+              </View>
+            ) : (
+              <Text style={s.photoHint}>Foto-Upload aktuell nur im Browser / in der Web-App.</Text>
+            )}
+            {photoMsg ? <Text style={s.photoMsg}>{photoMsg}</Text> : null}
+          </View>
         </Card>
       </FadeSlide>
 
@@ -126,7 +194,12 @@ export function LeaderboardScreen({
                 <View style={[s.rankBadge, isTop && s.rankBadgeTop]}>
                   <Text style={[s.rankText, isTop && s.rankTextTop]}>{row.rank}</Text>
                 </View>
-                <Avatar name={row.member.name} emoji={avatars[row.member.id]} highlight={isMe} />
+                <Avatar
+                  name={row.member.name}
+                  emoji={avatars[row.member.id]}
+                  photo={photos[row.member.id]}
+                  highlight={isMe}
+                />
                 <Text style={[s.name, isMe && s.nameMe]} numberOfLines={1}>
                   {row.member.name}
                   {isMe ? '  (du)' : ''}
@@ -190,6 +263,24 @@ function makeStyles(colors: Palette) {
     },
     emojiBtnActive: { borderColor: colors.accent, backgroundColor: colors.accentSoft },
     emojiText: { fontSize: 20 },
+
+    photoRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+    photoBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: 42,
+      paddingHorizontal: spacing.md,
+      borderRadius: radius.md,
+      backgroundColor: colors.accentSoft,
+      borderWidth: 1,
+      borderColor: colors.accent,
+    },
+    photoBtnText: { fontSize: 14, fontWeight: '800', color: colors.accent },
+    photoRemoveBtn: { paddingHorizontal: spacing.sm, paddingVertical: 8 },
+    photoRemoveText: { fontSize: 13, fontWeight: '700', color: colors.danger },
+    photoHint: { fontSize: 13, color: colors.mutedForeground, lineHeight: 19 },
+    photoMsg: { fontSize: 13, fontWeight: '600', color: colors.secondary, marginTop: 6 },
 
     list: { gap: spacing.sm },
     row: {

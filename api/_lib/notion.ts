@@ -138,6 +138,36 @@ export async function updatePage(
   });
 }
 
+/**
+ * Datei-Upload nach Notion (dreistufig): Upload-Objekt anlegen -> Bytes senden.
+ * Gibt die file_upload-ID zurueck, die dann an eine `files`-Property gehaengt wird
+ * (via `prop.fileUpload`). Der Sende-Schritt ist multipart -> eigener fetch ohne
+ * JSON-Content-Type (Boundary setzt fetch selbst).
+ */
+export async function uploadFile(
+  token: string,
+  bytes: Uint8Array,
+  filename: string,
+  contentType: string,
+): Promise<string> {
+  const created = await notionFetch('/file_uploads', token, {
+    method: 'POST',
+    body: JSON.stringify({ filename, content_type: contentType }),
+  });
+  const uploadUrl: string = created.upload_url || `${NOTION_API}/file_uploads/${created.id}/send`;
+
+  const form = new FormData();
+  form.append('file', new Blob([bytes], { type: contentType }), filename);
+  const res = await fetch(uploadUrl, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Notion-Version': NOTION_VERSION },
+    body: form,
+  });
+  const data: any = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(`Notion file send ${res.status}: ${data?.message || 'Fehler'}`);
+  return created.id as string;
+}
+
 /** Helfer zum BAUEN von Notion-Properties (Schreiben). */
 export const prop = {
   title: (v: string) => ({ title: [{ type: 'text', text: { content: String(v ?? '').slice(0, 1900) } }] }),
@@ -147,6 +177,10 @@ export const prop = {
   date: (iso?: string) => ({ date: iso ? { start: iso } : null }),
   select: (name?: string) => ({ select: name ? { name } : null }),
   checkbox: (v: boolean) => ({ checkbox: !!v }),
+  /** files-Property mit einem hochgeladenen Bild (leeres Array = Foto entfernen). */
+  fileUpload: (uploadId?: string, name = 'foto') => ({
+    files: uploadId ? [{ type: 'file_upload', name, file_upload: { id: uploadId } }] : [],
+  }),
 };
 
 /** Helfer zum LESEN von Notion-Properties. */
@@ -160,4 +194,9 @@ export const read = {
   date: (p: any): string => p?.date?.start || '',
   select: (p: any): string => p?.select?.name || '',
   checkbox: (p: any): boolean => !!p?.checkbox,
+  /** Erste Datei-URL einer files-Property (Notion-Datei oder externer Link). */
+  fileUrl: (p: any): string => {
+    const f = Array.isArray(p?.files) ? p.files[0] : undefined;
+    return f?.file?.url || f?.external?.url || '';
+  },
 };

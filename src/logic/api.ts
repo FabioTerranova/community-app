@@ -40,6 +40,20 @@ export async function createMember(input: {
   return (await call<{ member: Member }>('/api/members', { method: 'POST', body: input })).member;
 }
 
+/**
+ * Avatar setzen: Emoji und/oder Profilfoto. `photoBase64` ohne data:-Prefix
+ * ("" entfernt das Foto, "" bei emoji entfernt das Emoji). Gibt die frische
+ * (temporaere) Foto-URL zurueck.
+ */
+export async function setAvatar(input: {
+  memberId: string;
+  emoji?: string;
+  photoBase64?: string;
+  contentType?: string;
+}): Promise<{ emoji?: string; photoUrl?: string }> {
+  return call<{ emoji?: string; photoUrl?: string }>('/api/avatar', { method: 'POST', body: input });
+}
+
 // --- Termine ---
 export async function getEvents(): Promise<CommunityEvent[]> {
   return (await call<{ events: CommunityEvent[] }>('/api/events')).events;

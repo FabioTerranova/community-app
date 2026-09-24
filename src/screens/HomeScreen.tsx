@@ -30,6 +30,10 @@ export interface ScreenData {
   /** Emoji-Avatar je Mitglied (memberId -> Emoji). */
   avatars: Record<string, string>;
   onSetAvatar: (emoji: string) => void;
+  /** Profilfoto je Mitglied (memberId -> URL). */
+  photos: Record<string, string>;
+  /** Foto des aktuellen Mitglieds setzen (Base64 ohne data:-Prefix). */
+  onSetPhoto: (base64: string, contentType?: string) => Promise<void>;
   /** Vers des Tages (live aus api/verse, sonst Platzhalter). */
   verse: DailyVerse;
 }
@@ -80,6 +84,7 @@ export function HomeScreen(props: ScreenData) {
     today,
     onToggleSignup,
     avatars,
+    photos,
     verse,
   } = props;
   const { colors } = useTheme();
@@ -93,6 +98,7 @@ export function HomeScreen(props: ScreenData) {
   const trend = attendanceTrend(records, events, currentMemberId, today, 9);
   const upcoming = upcomingEvents(events, today).slice(0, 3);
   const myEmoji = avatars[currentMemberId];
+  const myPhoto = photos[currentMemberId];
   const shownPoints = useCountUp(points);
 
   return (
@@ -104,7 +110,7 @@ export function HomeScreen(props: ScreenData) {
             <Text style={s.date}>{formatLongDate(today)}</Text>
             <Text style={s.greeting}>Hallo {me.name.split(' ')[0]}</Text>
           </View>
-          <Avatar name={me.name} emoji={myEmoji} highlight size={52} />
+          <Avatar name={me.name} emoji={myEmoji} photo={myPhoto} highlight size={52} />
         </View>
       </FadeSlide>
 

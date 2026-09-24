@@ -29,6 +29,7 @@ export function AdminScreen({
   onSetStatus,
   onCreateEvent,
   avatars,
+  photos,
 }: ScreenData) {
   const { colors } = useTheme();
   const s = useMemo(() => makeStyles(colors), [colors]);
@@ -105,7 +106,7 @@ export function AdminScreen({
                 const member = members.find((m) => m.id === rec.memberId)!;
                 return (
                   <View key={rec.memberId} style={[s.personRow, i > 0 && s.divider]}>
-                    <Avatar name={member.name} emoji={avatars[member.id]} size={38} />
+                    <Avatar name={member.name} emoji={avatars[member.id]} photo={photos[member.id]} size={38} />
                     <Text style={s.personName}>{member.name}</Text>
                     <StatusToggle
                       status={rec.status}

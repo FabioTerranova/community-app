@@ -36,7 +36,8 @@ Notion-Daten**. Login, Domain, Live-Daten und Admin funktionieren.
 2. ✅ **Dienste/Verantwortliche pro Termin sind im Live-Modell.** Umgesetzt als zwei
    eigene Notion-Spalten **`Vorbereitung`** und **`Snacks`** (mehrere Personen
    kommagetrennt) in DB „Termine". `api/events.ts` liest/schreibt sie und baut daraus
-   `duties[]` (angezeigt via `EventDuties.tsx`). Aktuell Platzhalter **„offen"** —
+   `duties[]` (angezeigt via `EventDuties.tsx`). **Nur Schlanders** hat Dienste
+   (Platzhalter **„offen"**), **Bozen hat keine** (dort gibt es das nicht) —
    **echte Namen einfach direkt in Notion** in die Spalten eintragen (oder im Admin-
    Formular „Neuer Termin", Felder Vorbereitung/Snacks). Hinweis: **Bestehende Termine
    editieren geht nur in Notion** (das Admin-Formular legt bisher nur neu an).

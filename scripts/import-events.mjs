@@ -45,13 +45,12 @@ const events = [
     vorbereitung: VORB,
     snacks: SNACKS,
   })),
+  // Bozen: KEINE Dienste (Vorbereitung/Snacks) — dort gibt es das nicht.
   ...BOZEN.map(({ date, encounter }) => ({
     title: encounter ? 'JUHA Bozen – Encounter Night' : 'JUHA Bozen',
     date,
     location: 'Bozen · Achille-Grandistraße 22',
     notes: 'Fr 19:00–21:00 Uhr',
-    vorbereitung: VORB,
-    snacks: SNACKS,
   })),
 ];
 

@@ -49,10 +49,19 @@ export function LeaderboardScreen({
 
   async function choosePhoto() {
     setPhotoMsg(null);
+    let picked: { base64: string; contentType: string } | null = null;
+    try {
+      // Dialog + Verkleinern (noch KEIN Spinner -> Abbruch haengt nicht).
+      picked = await pickPhoto();
+    } catch (e: any) {
+      setPhotoMsg(e?.message || 'Foto konnte nicht verarbeitet werden.');
+      return;
+    }
+    if (!picked) return; // abgebrochen
+    // Jetzt der eigentliche Upload -> Spinner an.
     setPhotoBusy(true);
     try {
-      const picked = await pickPhoto();
-      if (picked) await onSetPhoto(picked.base64, picked.contentType);
+      await onSetPhoto(picked.base64, picked.contentType);
     } catch (e: any) {
       setPhotoMsg(e?.message || 'Foto konnte nicht gespeichert werden.');
     } finally {

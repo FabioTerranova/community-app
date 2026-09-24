@@ -43,8 +43,16 @@ Notion-Daten**. Login, Domain, Live-Daten und Admin funktionieren.
    editieren geht nur in Notion** (das Admin-Formular legt bisher nur neu an).
 3. Optional: Julias Anzeigename „juuli" -> „Julia Oester" (sie loggt sich neu ein und
    gibt den vollen Namen an, oder Name in Notion aendern).
-4. Optional/spaeter: Live-Aktualisierung (aktuell sieht man fremde Aenderungen erst
-   nach App-Neuladen); Avatar-Emoji dauerhaft in Notion speichern.
+4. ✅ **Avatare: Foto + Emoji dauerhaft in Notion.** Mitglieder-Spalte `Foto` (files,
+   Notion-Datei-Upload) + `Emoji` (rich_text). Setzen via `POST /api/avatar`
+   ({memberId, emoji?, photoBase64?}); `GET /api/members` liest beide. Auswahl in der
+   **Rangliste** unter „Dein Symbol" / „Dein Foto". Anzeige-Vorrang: Foto > Emoji >
+   Initialen (`Avatar` in `ui.tsx`). **Foto-Upload aktuell Web-only** (Datei-Dialog +
+   quadratischer Zuschnitt/Verkleinerung auf ~256px JPEG, `src/logic/photo.ts`); native
+   (Expo Go) koennte man mit `expo-image-picker` ergaenzen. Foto-URLs sind temporaer
+   (Notion/S3, ~1h) -> je App-Start frisch geladen, daher unkritisch.
+5. Optional/spaeter: Live-Aktualisierung (fremde Aenderungen sieht man erst nach
+   App-Neuladen); Foto-Upload auch in der nativen App (Expo Go).
 
 ### Deploy-Weg
 `git push` auf `main` -> Vercel baut (`npx expo export --platform web && node

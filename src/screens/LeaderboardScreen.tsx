@@ -56,7 +56,8 @@ export function LeaderboardScreen({
     () => (filter === 'all' ? records : records.filter((r) => placeByEvent.get(r.eventId) === filter)),
     [records, filter, placeByEvent],
   );
-  const board = leaderboard(members, filteredRecords).filter((row) => row.points > 0 || filter === 'all');
+  // Alle Mitglieder in jedem Tab anzeigen (auch mit 0 Punkten) -> alle Tabs gleich.
+  const board = leaderboard(members, filteredRecords);
 
   const me = members.find((m) => m.id === currentMemberId)!;
   const myPoints = memberPoints(records, currentMemberId);
@@ -233,7 +234,7 @@ export function LeaderboardScreen({
         })}
       </View>
       {board.length === 0 ? (
-        <Text style={s.emptyBoard}>Für {FILTERS.find((f) => f.key === filter)?.label} gibt es noch keine Teilnahmen.</Text>
+        <Text style={s.emptyBoard}>Noch keine Mitglieder.</Text>
       ) : null}
       <View style={s.list}>
         {board.map((row, idx) => {

@@ -27,6 +27,31 @@ Notion-Daten**. Login, Domain, Live-Daten und Admin funktionieren.
   -> `createEvent`) und Anwesenheit bestaetigen.
 - **Mitglieder aktuell**: Fabio, „juuli" (= Julia Oester, **Admin**), „miri".
 
+### 🧹 Duplikate bereinigt + kuenftig vermieden (28.09.2026)
+- **Ursache**: Leute haben sich mit ZWEI verschiedenen E-Mails angemeldet (Schul- vs.
+  Gmail, Tippfehler wie „gimeil.com", Wegwerf-Mails) -> `findByEmail` fand das
+  bestehende Konto nicht und legte ein zweites an.
+- **Bereinigt**: 7 Gruppen zusammengefuehrt (44 -> 36 Mitglieder). Behalten wurde das
+  Konto mit Foto/Emoji bzw. Anwesenheiten; Duplikate archiviert (Notion-Papierkorb,
+  ~30 Tage wiederherstellbar). Matthias: Emoji+Anwesenheiten lagen auf einer
+  Wegwerf-Mail -> auf sein echtes iCloud-Konto umgezogen. **0 verwaiste Datensaetze.**
+- **Werkzeuge (bleiben nutzbar)**:
+  - `POST /api/merge {keepId, mergeIds[]}` (`api/merge.ts`) — haengt Anwesenheiten +
+    Avatar um, archiviert Duplikate; idempotent.
+  - `scripts/merge-duplicates.mjs [--dry]` — einmalige Bereinigung gegen die Live-API.
+  - **Admin-Tab -> „Doppelte zusammenfuehren"**: zwei Mitglieder waehlen + mergen;
+    schlaegt verdaechtige Namensdubletten automatisch vor.
+- **Vorbeugung**: Bei Selbstregistrierung mit neuer Mail, aber schon existierendem
+  Namen, fragt der Login zurueck („Kennen wir dich schon?") und zeigt einen
+  **maskierten Hinweis** auf die vorhandene Mail (`n****@ssp-latsch.eu`). Bestaetigt
+  der Nutzer „Ich bin wirklich neu", wird trotzdem angelegt (`confirmNew`).
+  Logik in `api/auth.ts` (`findByName`/`maskEmail`) + `LoginScreen.tsx`.
+
+### 🏆 Getrennte Ranglisten Bozen / Schlanders (28.09.2026)
+Rangliste hat einen Umschalter **Gesamt / Schlanders / Bozen** (`LeaderboardScreen.tsx`).
+Ort je Termin aus Titel/Ort abgeleitet (`eventPlace` in `src/logic/format.ts`); die
+persoenliche Karte oben bleibt gesamt-basiert.
+
 ### ⏸️ Naechster Schritt / offen
 1. ✅ **JUHA-Termine sind importiert** (15 Stueck, live in Notion): JUHA Schlanders
    (11× Fr 18:00–19:30, CGS Zentrum) + JUHA Bozen (Fr 19:00–21:00, Achille-Grandistr.

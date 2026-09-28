@@ -52,6 +52,37 @@ async function findByEmail(token: string, dbId: string, titleProp: string, email
   return rows.length ? toMember(rows[0], titleProp) : null;
 }
 
+/**
+ * Normalisierter Namensschluessel fuer die Duplikat-Warnung: klein, ohne
+ * Zwischenraeume/Punkte/Emojis -> "Nora.Kaserer" == "nora kaserer".
+ */
+function nameKey(name: string): string {
+  return String(name || '')
+    .toLowerCase()
+    .replace(/[^\p{Letter}\p{Number}]+/gu, '');
+}
+
+/**
+ * E-Mail fuer die Duplikat-Warnung maskieren: Domain bleibt (zum Wiedererkennen),
+ * der lokale Teil wird bis auf den ersten Buchstaben verdeckt.
+ *   "nora.kaserer@ssp-latsch.eu" -> "n****@ssp-latsch.eu"
+ */
+function maskEmail(email?: string): string | undefined {
+  if (!email || !email.includes('@')) return undefined;
+  const [local, domain] = email.split('@');
+  const head = local.slice(0, 1);
+  return `${head}${'*'.repeat(Math.max(3, local.length - 1))}@${domain}`;
+}
+
+/** Erstes bestehendes Mitglied mit gleichem (normalisiertem) Namen (oder null). */
+async function findByName(token: string, dbId: string, titleProp: string, name: string) {
+  const key = nameKey(name);
+  if (!key) return null;
+  const rows = await queryDatabase(token, dbId);
+  const hit = rows.find((r) => nameKey(read.titleText(r.properties?.[titleProp])) === key);
+  return hit ? toMember(hit, titleProp) : null;
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ ok: false, reason: 'Method not allowed.' });
   const token = process.env.NOTION_TOKEN;
@@ -70,9 +101,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!resendKey) return res.status(500).json({ ok: false, reason: 'RESEND_API_KEY fehlt.' });
 
       const providedName = String(body.name || '').trim();
+      const confirmNew = body.confirmNew === true;
       const { dbId, titleProp } = await membersDb(token);
       let member = await findByEmail(token, dbId, titleProp, email);
       if (!member) {
+        // Duplikat-Schutz: Gibt es schon jemanden mit gleichem Namen (andere Mail)?
+        // Dann NICHT still neu anlegen, sondern rueckfragen (confirmNew ueberspringt das).
+        if (providedName && !confirmNew) {
+          const sameName = await findByName(token, dbId, titleProp, providedName);
+          if (sameName) {
+            return res.status(200).json({
+              ok: true,
+              needsConfirm: true,
+              existingName: sameName.name,
+              emailHint: maskEmail(sameName.email),
+            });
+          }
+        }
         // Selbstregistrierung: Name aus der Eingabe (Fallback: Teil vor dem @).
         const finalName = providedName || email.split('@')[0];
         const page = await createPage(token, dbId, {

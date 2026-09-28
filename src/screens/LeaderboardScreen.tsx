@@ -5,6 +5,7 @@ import { useTheme } from '../ThemeContext';
 import { leaderboard, memberPoints, milestoneProgress, milestonesFor } from '../logic/points';
 import { Avatar, Card, Divider, ProgressBar, SectionTitle } from '../components/ui';
 import { canPickPhoto, pickPhoto } from '../logic/photo';
+import { eventPlace, type EventPlace } from '../logic/format';
 import {
   CalendarIcon,
   ShieldIcon,
@@ -23,8 +24,17 @@ const MILESTONE_ICONS: Record<string, (p: IconProps) => React.JSX.Element> = {
   pillar: TrophyIcon,
 };
 
+type BoardFilter = 'all' | EventPlace;
+
+const FILTERS: { key: BoardFilter; label: string }[] = [
+  { key: 'all', label: 'Gesamt' },
+  { key: 'schlanders', label: 'Schlanders' },
+  { key: 'bozen', label: 'Bozen' },
+];
+
 export function LeaderboardScreen({
   members,
+  events,
   records,
   currentMemberId,
   avatars,
@@ -34,7 +44,19 @@ export function LeaderboardScreen({
 }: ScreenData) {
   const { colors } = useTheme();
   const s = useMemo(() => makeStyles(colors), [colors]);
-  const board = leaderboard(members, records);
+
+  // Getrennte Ranglisten: je Termin den Ort bestimmen, Anwesenheiten danach filtern.
+  const [filter, setFilter] = useState<BoardFilter>('all');
+  const placeByEvent = useMemo(() => {
+    const map = new Map<string, EventPlace | undefined>();
+    for (const e of events) map.set(e.id, eventPlace(e));
+    return map;
+  }, [events]);
+  const filteredRecords = useMemo(
+    () => (filter === 'all' ? records : records.filter((r) => placeByEvent.get(r.eventId) === filter)),
+    [records, filter, placeByEvent],
+  );
+  const board = leaderboard(members, filteredRecords).filter((row) => row.points > 0 || filter === 'all');
 
   const me = members.find((m) => m.id === currentMemberId)!;
   const myPoints = memberPoints(records, currentMemberId);
@@ -193,6 +215,26 @@ export function LeaderboardScreen({
       </FadeSlide>
 
       <SectionTitle>Rangliste</SectionTitle>
+      {/* Getrennte Ranglisten: Gesamt / Schlanders / Bozen */}
+      <View style={s.segment}>
+        {FILTERS.map((f) => {
+          const active = filter === f.key;
+          return (
+            <Pressable
+              key={f.key}
+              onPress={() => setFilter(f.key)}
+              accessibilityRole="button"
+              accessibilityState={{ selected: active }}
+              style={[s.segmentBtn, active && s.segmentBtnActive]}
+            >
+              <Text style={[s.segmentText, active && s.segmentTextActive]}>{f.label}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+      {board.length === 0 ? (
+        <Text style={s.emptyBoard}>Für {FILTERS.find((f) => f.key === filter)?.label} gibt es noch keine Teilnahmen.</Text>
+      ) : null}
       <View style={s.list}>
         {board.map((row, idx) => {
           const isMe = row.member.id === currentMemberId;
@@ -290,6 +332,32 @@ function makeStyles(colors: Palette) {
     photoRemoveText: { fontSize: 13, fontWeight: '700', color: colors.danger },
     photoHint: { fontSize: 13, color: colors.mutedForeground, lineHeight: 19 },
     photoMsg: { fontSize: 13, fontWeight: '600', color: colors.secondary, marginTop: 6 },
+
+    segment: {
+      flexDirection: 'row',
+      backgroundColor: colors.muted,
+      borderRadius: radius.md,
+      padding: 3,
+      gap: 3,
+      marginBottom: spacing.sm,
+    },
+    segmentBtn: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 8,
+      borderRadius: radius.md - 2,
+    },
+    segmentBtnActive: { backgroundColor: colors.surface, ...shadow(colors.shadowColor, 'sm') },
+    segmentText: { fontSize: 13, fontWeight: '700', color: colors.mutedForeground },
+    segmentTextActive: { color: colors.accent },
+    emptyBoard: {
+      fontSize: 13,
+      color: colors.mutedForeground,
+      textAlign: 'center',
+      paddingVertical: spacing.lg,
+      lineHeight: 19,
+    },
 
     list: { gap: spacing.sm },
     row: {

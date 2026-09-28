@@ -12,6 +12,7 @@ import {
   getDailyVerse,
   getEvents,
   getMembers,
+  mergeMembers as apiMergeMembers,
   setAttendance as apiSetAttendance,
   setAvatar as apiSetAvatar,
 } from './src/logic/api';
@@ -293,6 +294,25 @@ function AppInner() {
     setEvents((prev) => [...prev, ev].sort((a, b) => a.date.localeCompare(b.date)));
   }
 
+  // Admin fuehrt zwei Mitglieder zusammen: Duplikat -> behaltenes Konto (Server
+  // haengt Anwesenheiten/Avatar um + archiviert das Duplikat). Danach neu laden.
+  async function mergeMembersHandler(keepId: string, mergeId: string) {
+    await apiMergeMembers({ keepId, mergeIds: [mergeId] });
+    const [ms, rs] = await Promise.all([getMembers(), getAttendance()]);
+    setMembers(ms);
+    setRecords(rs);
+    setAvatars((prev) => {
+      const map = { ...prev };
+      for (const m of ms) if (m.emoji) map[m.id] = m.emoji;
+      return map;
+    });
+    setPhotos((prev) => {
+      const map = { ...prev };
+      for (const m of ms) if (m.photoUrl) map[m.id] = m.photoUrl;
+      return map;
+    });
+  }
+
   const data: ScreenData = {
     members,
     events,
@@ -302,6 +322,7 @@ function AppInner() {
     onToggleSignup: toggleSignup,
     onSetStatus: setStatus,
     onCreateEvent: createEvent,
+    onMergeMembers: mergeMembersHandler,
     avatars,
     onSetAvatar: setAvatar,
     photos,

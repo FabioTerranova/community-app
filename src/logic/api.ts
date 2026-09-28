@@ -54,6 +54,20 @@ export async function setAvatar(input: {
   return call<{ emoji?: string; photoUrl?: string }>('/api/avatar', { method: 'POST', body: input });
 }
 
+/**
+ * Zwei (oder mehr) doppelte Mitglieder zusammenfuehren: Anwesenheiten + Avatar
+ * wandern aufs behaltene Konto, die Duplikate werden archiviert.
+ */
+export async function mergeMembers(input: {
+  keepId: string;
+  mergeIds: string[];
+}): Promise<{ movedAttendance: number; archivedMembers: number }> {
+  return call<{ movedAttendance: number; archivedMembers: number }>('/api/merge', {
+    method: 'POST',
+    body: input,
+  });
+}
+
 // --- Termine ---
 export async function getEvents(): Promise<CommunityEvent[]> {
   return (await call<{ events: CommunityEvent[] }>('/api/events')).events;

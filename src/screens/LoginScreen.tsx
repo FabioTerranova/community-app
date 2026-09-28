@@ -32,10 +32,16 @@ export function LoginScreen({
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
-  const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'verifying'>('idle');
+  const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'verifying' | 'confirm'>(
+    'idle',
+  );
   const [error, setError] = useState<string | null>(initialError ?? null);
+  // Name existiert schon (andere Mail) -> Rueckfrage gegen versehentliche Duplikate.
+  const [existingName, setExistingName] = useState<string | null>(null);
+  const [emailHint, setEmailHint] = useState<string | null>(null);
 
-  async function submit() {
+  // `confirmNew`: true = Nutzer bestaetigt, wirklich neu anzulegen (Warnung ueberspringen).
+  async function submit(confirmNew = false) {
     const value = email.trim();
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(value)) {
       setError('Bitte eine gueltige E-Mail-Adresse eingeben.');
@@ -44,7 +50,17 @@ export function LoginScreen({
     setError(null);
     setStatus('sending');
     try {
-      await requestLogin(value, name.trim());
+      const { needsConfirm, existingName: ex, emailHint: hint } = await requestLogin(
+        value,
+        name.trim(),
+        confirmNew,
+      );
+      if (needsConfirm) {
+        setExistingName(ex ?? name.trim());
+        setEmailHint(hint ?? null);
+        setStatus('confirm');
+        return;
+      }
       setStatus('sent');
     } catch (e: any) {
       setStatus('idle');
@@ -93,7 +109,35 @@ export function LoginScreen({
           </View>
 
           <Card style={s.card}>
-            {status === 'sent' || status === 'verifying' ? (
+            {status === 'confirm' ? (
+              <>
+                <Text style={s.title}>Kennen wir dich schon? 🤔</Text>
+                <Text style={s.body}>
+                  Es gibt bereits ein Mitglied namens{' '}
+                  <Text style={s.bold}>{existingName}</Text>
+                  {emailHint ? (
+                    <>
+                      {' '}(angemeldet mit <Text style={s.bold}>{emailHint}</Text>)
+                    </>
+                  ) : null}
+                  . Wenn <Text style={s.bold}>du</Text> das bist, melde dich bitte mit dieser{' '}
+                  <Text style={s.bold}>ursprünglichen E-Mail</Text> an — so bleiben deine Punkte
+                  erhalten und es entsteht kein doppelter Eintrag.
+                </Text>
+                <Button
+                  label="Andere E-Mail verwenden"
+                  onPress={() => {
+                    setStatus('idle');
+                    setError(null);
+                  }}
+                />
+                <Button
+                  label="Ich bin wirklich neu – trotzdem anlegen"
+                  variant="ghost"
+                  onPress={() => submit(true)}
+                />
+              </>
+            ) : status === 'sent' || status === 'verifying' ? (
               <>
                 <Text style={s.title}>Code eingeben 🔑</Text>
                 <Text style={s.body}>
@@ -160,7 +204,7 @@ export function LoginScreen({
                   keyboardType="email-address"
                   inputMode="email"
                   editable={status !== 'sending'}
-                  onSubmitEditing={submit}
+                  onSubmitEditing={() => submit()}
                   style={s.input}
                 />
                 {error ? <Text style={s.error}>{error}</Text> : null}
@@ -170,7 +214,7 @@ export function LoginScreen({
                     <Text style={s.sendingText}>Link wird gesendet…</Text>
                   </View>
                 ) : (
-                  <Button label="Code senden" onPress={submit} />
+                  <Button label="Code senden" onPress={() => submit()} />
                 )}
               </>
             )}

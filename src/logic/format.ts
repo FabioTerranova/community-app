@@ -70,6 +70,19 @@ export function cleanVerseText(text?: string): string {
     .trim();
 }
 
+export type EventPlace = 'schlanders' | 'bozen';
+
+/**
+ * Ort eines Termins (fuer getrennte Ranglisten Schlanders/Bozen) — aus Titel und
+ * Ort abgeleitet. `undefined`, wenn keiner passt (zaehlt nur in die Gesamt-Liste).
+ */
+export function eventPlace(input: { title?: string; location?: string }): EventPlace | undefined {
+  const t = `${input.title ?? ''} ${input.location ?? ''}`.toLowerCase();
+  if (t.includes('schlanders')) return 'schlanders';
+  if (t.includes('bozen') || t.includes('bolzano')) return 'bozen';
+  return undefined;
+}
+
 /** Passendes Emoji je Termin-Art (aus dem Titel abgeleitet). */
 export function eventIcon(title: string): string {
   return eventCategory(title).icon;

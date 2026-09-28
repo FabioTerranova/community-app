@@ -8,7 +8,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import type { AttendanceRecord } from '../types';
+import type { AttendanceRecord, Member } from '../types';
 import { radius, spacing, type Palette } from '../theme';
 import { useTheme } from '../ThemeContext';
 import { formatDate } from '../logic/format';
@@ -28,6 +28,7 @@ export function AdminScreen({
   today,
   onSetStatus,
   onCreateEvent,
+  onMergeMembers,
   avatars,
   photos,
 }: ScreenData) {
@@ -56,6 +57,9 @@ export function AdminScreen({
   return (
     <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
       {onCreateEvent ? <NewEventForm onCreate={onCreateEvent} /> : null}
+      {onMergeMembers ? (
+        <MergeTool members={members} avatars={avatars} photos={photos} onMerge={onMergeMembers} />
+      ) : null}
       <Text style={s.h1}>Anwesenheit</Text>
       <View style={s.statusRow}>
         {pendingCount > 0 ? (
@@ -240,6 +244,192 @@ function NewEventForm({
   );
 }
 
+/** Normalisierter Namensschluessel zum Aufspueren doppelter Mitglieder. */
+function nameKey(name: string): string {
+  return String(name || '')
+    .toLowerCase()
+    .replace(/[^\p{Letter}\p{Number}]+/gu, '');
+}
+
+/**
+ * Admin-Werkzeug: zwei Mitglieder zusammenfuehren. Man waehlt das Konto zum
+ * BEHALTEN (mit Foto/Punkten) und das DUPLIKAT; Anwesenheiten/Avatar wandern
+ * aufs behaltene, das Duplikat wird archiviert. Verdaechtige Namensdubletten
+ * werden oben als Schnellauswahl vorgeschlagen.
+ */
+function MergeTool({
+  members,
+  avatars,
+  photos,
+  onMerge,
+}: {
+  members: Member[];
+  avatars: Record<string, string>;
+  photos: Record<string, string>;
+  onMerge: (keepId: string, mergeId: string) => Promise<void>;
+}) {
+  const { colors } = useTheme();
+  const s = useMemo(() => makeStyles(colors), [colors]);
+  const [keepId, setKeepId] = useState<string | null>(null);
+  const [mergeId, setMergeId] = useState<string | null>(null);
+  const [open, setOpen] = useState<null | 'keep' | 'merge'>(null);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  const sorted = useMemo(
+    () => [...members].sort((a, b) => a.name.localeCompare(b.name)),
+    [members],
+  );
+
+  // Verdaechtige Duplikate: gleiche (normalisierte) Namen -> als Vorschlag anbieten.
+  const suspects = useMemo(() => {
+    const byKey = new Map<string, Member[]>();
+    for (const m of members) {
+      const k = nameKey(m.name);
+      if (!k) continue;
+      byKey.set(k, [...(byKey.get(k) || []), m]);
+    }
+    return [...byKey.values()].filter((g) => g.length > 1);
+  }, [members]);
+
+  const keep = members.find((m) => m.id === keepId) || null;
+  const dupe = members.find((m) => m.id === mergeId) || null;
+  const canMerge = !!keepId && !!mergeId && keepId !== mergeId && !busy;
+
+  async function doMerge() {
+    if (!canMerge || !keep || !dupe) return;
+    const ok =
+      typeof window === 'undefined' ||
+      window.confirm(
+        `„${dupe.name}" (${dupe.email || 'ohne E-Mail'}) wird mit „${keep.name}" ` +
+          `zusammengeführt. Punkte/Anwesenheiten wandern zu „${keep.name}", das Duplikat ` +
+          `wird archiviert (in Notion wiederherstellbar). Fortfahren?`,
+      );
+    if (!ok) return;
+    setBusy(true);
+    setMsg(null);
+    try {
+      await onMerge(keepId!, mergeId!);
+      setMsg(`✓ Zusammengeführt – „${dupe.name}" archiviert.`);
+      setKeepId(null);
+      setMergeId(null);
+    } catch (e: any) {
+      setMsg(e?.message || 'Zusammenführen fehlgeschlagen.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function pick(id: string) {
+    if (open === 'keep') setKeepId(id);
+    else if (open === 'merge') setMergeId(id);
+    setOpen(null);
+  }
+
+  return (
+    <View style={{ marginBottom: spacing.lg }}>
+      <Text style={s.h1}>Doppelte zusammenführen</Text>
+      <Card style={{ gap: spacing.sm, marginTop: spacing.sm }}>
+        <Text style={s.mergeHint}>
+          Wähle das Konto zum <Text style={{ fontWeight: '800' }}>Behalten</Text> (mit Foto/Punkten)
+          und das <Text style={{ fontWeight: '800' }}>Duplikat</Text>. Punkte & Anwesenheiten
+          wandern mit; das Duplikat wird archiviert.
+        </Text>
+
+        {suspects.length > 0 ? (
+          <View style={{ gap: 6 }}>
+            <Text style={s.mergeLabel}>Mögliche Duplikate</Text>
+            {suspects.map((g) => (
+              <Pressable
+                key={nameKey(g[0].name)}
+                style={s.suspectRow}
+                onPress={() => {
+                  // Vorschlag: das mit Foto/Emoji behalten, das andere als Duplikat.
+                  const withAvatar = g.find((m) => photos[m.id] || avatars[m.id]);
+                  const keepM = withAvatar || g[0];
+                  const dupeM = g.find((m) => m.id !== keepM.id) || g[1];
+                  setKeepId(keepM.id);
+                  setMergeId(dupeM.id);
+                  setOpen(null);
+                }}
+              >
+                <Text style={s.suspectName}>{g[0].name}</Text>
+                <Text style={s.suspectCount}>{g.length}× · antippen</Text>
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
+
+        <PickerField
+          label="Behalten"
+          member={keep}
+          onPress={() => setOpen(open === 'keep' ? null : 'keep')}
+        />
+        {open === 'keep' ? <MemberList members={sorted} onPick={pick} /> : null}
+
+        <PickerField
+          label="Duplikat (wird archiviert)"
+          member={dupe}
+          onPress={() => setOpen(open === 'merge' ? null : 'merge')}
+        />
+        {open === 'merge' ? <MemberList members={sorted} onPick={pick} /> : null}
+
+        {msg ? <Text style={s.formMsg}>{msg}</Text> : null}
+        {busy ? (
+          <View style={s.savingRow}>
+            <ActivityIndicator color={colors.accent} />
+            <Text style={s.sub}>Wird zusammengeführt…</Text>
+          </View>
+        ) : (
+          <Button label="Zusammenführen" onPress={doMerge} disabled={!canMerge} />
+        )}
+      </Card>
+    </View>
+  );
+}
+
+function PickerField({
+  label,
+  member,
+  onPress,
+}: {
+  label: string;
+  member: Member | null;
+  onPress: () => void;
+}) {
+  const { colors } = useTheme();
+  const s = useMemo(() => makeStyles(colors), [colors]);
+  return (
+    <Pressable onPress={onPress} style={s.pickerField}>
+      <Text style={s.mergeLabel}>{label}</Text>
+      <Text style={[s.pickerValue, !member && { color: colors.mutedForeground }]}>
+        {member ? `${member.name}  ·  ${member.email || 'ohne E-Mail'}` : 'Auswählen…'}
+      </Text>
+    </Pressable>
+  );
+}
+
+function MemberList({
+  members,
+  onPick,
+}: {
+  members: Member[];
+  onPick: (id: string) => void;
+}) {
+  const { colors } = useTheme();
+  const s = useMemo(() => makeStyles(colors), [colors]);
+  return (
+    <ScrollView style={s.memberList} nestedScrollEnabled keyboardShouldPersistTaps="handled">
+      {members.map((m) => (
+        <Pressable key={m.id} style={s.memberItem} onPress={() => onPick(m.id)}>
+          <Text style={s.memberItemName}>{m.name}</Text>
+          <Text style={s.memberItemMail}>{m.email || 'ohne E-Mail'}</Text>
+        </Pressable>
+      ))}
+    </ScrollView>
+  );
+}
+
 function StatusToggle({
   status,
   onAttended,
@@ -329,6 +519,45 @@ function makeStyles(colors: Palette) {
     },
     formMsg: { fontSize: 13, fontWeight: '600', color: colors.secondary },
     savingRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: 6 },
+
+    mergeHint: { fontSize: 13, color: colors.secondary, lineHeight: 19 },
+    mergeLabel: { fontSize: 11, fontWeight: '800', color: colors.mutedForeground, textTransform: 'uppercase', letterSpacing: 0.3 },
+    suspectRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: colors.accentSoft,
+      borderRadius: radius.md,
+      paddingHorizontal: spacing.md,
+      paddingVertical: 10,
+    },
+    suspectName: { fontSize: 14, fontWeight: '800', color: colors.accent },
+    suspectCount: { fontSize: 12, fontWeight: '700', color: colors.accent },
+    pickerField: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: radius.md,
+      paddingHorizontal: spacing.md,
+      paddingVertical: 10,
+      gap: 3,
+      backgroundColor: colors.surfaceAlt,
+    },
+    pickerValue: { fontSize: 15, fontWeight: '700', color: colors.foreground },
+    memberList: {
+      maxHeight: 220,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: radius.md,
+      backgroundColor: colors.surface,
+    },
+    memberItem: {
+      paddingHorizontal: spacing.md,
+      paddingVertical: 10,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    memberItemName: { fontSize: 15, fontWeight: '700', color: colors.foreground },
+    memberItemMail: { fontSize: 12, color: colors.mutedForeground, marginTop: 1 },
 
     eventHead: {
       flexDirection: 'row',

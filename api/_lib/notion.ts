@@ -139,6 +139,17 @@ export async function updatePage(
 }
 
 /**
+ * Seite archivieren (= in den Notion-Papierkorb). Reversibel (~30 Tage
+ * wiederherstellbar). Wird zum Zusammenfuehren doppelter Mitglieder genutzt.
+ */
+export async function archivePage(token: string, pageId: string): Promise<any> {
+  return notionFetch(`/pages/${pageId}`, token, {
+    method: 'PATCH',
+    body: JSON.stringify({ archived: true }),
+  });
+}
+
+/**
  * Datei-Upload nach Notion (dreistufig): Upload-Objekt anlegen -> Bytes senden.
  * Gibt die file_upload-ID zurueck, die dann an eine `files`-Property gehaengt wird
  * (via `prop.fileUpload`). Der Sende-Schritt ist multipart -> eigener fetch ohne

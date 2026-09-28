@@ -48,9 +48,24 @@ export function clearSession() {
   }
 }
 
-/** Login-Code per E-Mail anfordern. `name` wird bei erster Anmeldung als Anzeigename gesetzt. */
-export async function requestLogin(email: string, name?: string): Promise<void> {
-  await post('request', { email, name });
+/**
+ * Login-Code per E-Mail anfordern. `name` wird bei erster Anmeldung als
+ * Anzeigename gesetzt. Gibt der Server `needsConfirm` zurueck, existiert bereits
+ * ein Mitglied mit gleichem Namen (andere Mail) -> der Aufrufer soll rueckfragen
+ * und bei "wirklich neu" mit `confirmNew=true` erneut anfordern. Ohne needsConfirm
+ * wurde der Code verschickt.
+ */
+export async function requestLogin(
+  email: string,
+  name?: string,
+  confirmNew = false,
+): Promise<{ needsConfirm?: boolean; existingName?: string; emailHint?: string }> {
+  const data = await post('request', { email, name, confirmNew });
+  return {
+    needsConfirm: data?.needsConfirm === true,
+    existingName: data?.existingName,
+    emailHint: data?.emailHint,
+  };
 }
 
 /** Code aus der E-Mail pruefen -> Session speichern, Member zurueckgeben. */

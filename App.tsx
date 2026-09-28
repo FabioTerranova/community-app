@@ -15,6 +15,7 @@ import {
   mergeMembers as apiMergeMembers,
   setAttendance as apiSetAttendance,
   setAvatar as apiSetAvatar,
+  setMemberAdmin as apiSetMemberAdmin,
 } from './src/logic/api';
 import { disablePushForEvent, enablePushForEvent, isPushSupported } from './src/logic/push';
 import { logout, restoreSession, type AuthMember } from './src/logic/auth';
@@ -313,6 +314,18 @@ function AppInner() {
     });
   }
 
+  // Admin fuehrt ein Mitglied zum Admin (oder entzieht das Recht). Optimistisch.
+  async function setMemberAdmin(memberId: string, admin: boolean) {
+    const prev = members;
+    setMembers((cur) => cur.map((m) => (m.id === memberId ? { ...m, admin } : m)));
+    try {
+      await apiSetMemberAdmin({ memberId, admin });
+    } catch (e) {
+      setMembers(prev);
+      throw e;
+    }
+  }
+
   const data: ScreenData = {
     members,
     events,
@@ -323,6 +336,7 @@ function AppInner() {
     onSetStatus: setStatus,
     onCreateEvent: createEvent,
     onMergeMembers: mergeMembersHandler,
+    onSetAdmin: setMemberAdmin,
     avatars,
     onSetAvatar: setAvatar,
     photos,

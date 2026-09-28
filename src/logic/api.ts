@@ -54,6 +54,14 @@ export async function setAvatar(input: {
   return call<{ emoji?: string; photoUrl?: string }>('/api/avatar', { method: 'POST', body: input });
 }
 
+/** Admin-Recht eines Mitglieds setzen/entziehen. */
+export async function setMemberAdmin(input: {
+  memberId: string;
+  admin: boolean;
+}): Promise<{ memberId: string; admin: boolean }> {
+  return call<{ memberId: string; admin: boolean }>('/api/members', { method: 'PATCH', body: input });
+}
+
 /**
  * Zwei (oder mehr) doppelte Mitglieder zusammenfuehren: Anwesenheiten + Avatar
  * wandern aufs behaltene Konto, die Duplikate werden archiviert.

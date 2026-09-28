@@ -29,6 +29,7 @@ export function AdminScreen({
   onSetStatus,
   onCreateEvent,
   onMergeMembers,
+  onSetAdmin,
   avatars,
   photos,
 }: ScreenData) {
@@ -57,6 +58,7 @@ export function AdminScreen({
   return (
     <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
       {onCreateEvent ? <NewEventForm onCreate={onCreateEvent} /> : null}
+      {onSetAdmin ? <AdminRoles members={members} onSetAdmin={onSetAdmin} /> : null}
       {onMergeMembers ? (
         <MergeTool members={members} avatars={avatars} photos={photos} onMerge={onMergeMembers} />
       ) : null}
@@ -239,6 +241,108 @@ function NewEventForm({
         ) : (
           <Button label="Termin anlegen" onPress={submit} />
         )}
+      </Card>
+    </View>
+  );
+}
+
+/**
+ * Admin-Werkzeug: Admin-Rechte verwalten. Liste aller Mitglieder (Admins oben),
+ * Suchfeld, pro Person ein Umschalter. Optimistisch via onSetAdmin (App.tsx).
+ */
+function AdminRoles({
+  members,
+  onSetAdmin,
+}: {
+  members: Member[];
+  onSetAdmin: (memberId: string, admin: boolean) => Promise<void>;
+}) {
+  const { colors } = useTheme();
+  const s = useMemo(() => makeStyles(colors), [colors]);
+  const [query, setQuery] = useState('');
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return [...members]
+      .filter(
+        (m) =>
+          !q ||
+          m.name.toLowerCase().includes(q) ||
+          (m.email || '').toLowerCase().includes(q),
+      )
+      // Admins zuerst, dann alphabetisch.
+      .sort((a, b) => Number(!!b.admin) - Number(!!a.admin) || a.name.localeCompare(b.name));
+  }, [members, query]);
+
+  const adminCount = members.filter((m) => m.admin).length;
+
+  async function toggle(m: Member) {
+    setMsg(null);
+    setBusyId(m.id);
+    try {
+      await onSetAdmin(m.id, !m.admin);
+    } catch (e: any) {
+      setMsg(e?.message || 'Konnte Admin-Recht nicht ändern.');
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  return (
+    <View style={{ marginBottom: spacing.lg }}>
+      <Text style={s.h1}>Admins verwalten</Text>
+      <Card style={{ gap: spacing.sm, marginTop: spacing.sm }}>
+        <Text style={s.mergeHint}>
+          Admins können Termine anlegen, Anwesenheit bestätigen und Mitglieder verwalten.
+          Aktuell <Text style={{ fontWeight: '800' }}>{adminCount}</Text> Admin
+          {adminCount === 1 ? '' : 's'}.
+        </Text>
+        <TextInput
+          value={query}
+          onChangeText={setQuery}
+          placeholder="Mitglied suchen…"
+          placeholderTextColor={colors.mutedForeground}
+          autoCapitalize="none"
+          autoCorrect={false}
+          style={s.input}
+        />
+        {msg ? <Text style={s.formMsg}>{msg}</Text> : null}
+        <View style={s.memberList}>
+          <ScrollView nestedScrollEnabled keyboardShouldPersistTaps="handled">
+            {filtered.map((m) => (
+              <View key={m.id} style={s.roleRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.memberItemName}>{m.name}</Text>
+                  <Text style={s.memberItemMail}>{m.email || 'ohne E-Mail'}</Text>
+                </View>
+                <Pressable
+                  onPress={() => toggle(m)}
+                  disabled={busyId === m.id}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: !!m.admin }}
+                  style={[
+                    s.rolePill,
+                    { backgroundColor: m.admin ? colors.accent : colors.muted },
+                    busyId === m.id && { opacity: 0.5 },
+                  ]}
+                >
+                  {busyId === m.id ? (
+                    <ActivityIndicator size="small" color={m.admin ? '#FFFFFF' : colors.secondary} />
+                  ) : (
+                    <Text style={[s.rolePillText, { color: m.admin ? '#FFFFFF' : colors.secondary }]}>
+                      {m.admin ? '★ Admin' : 'kein Admin'}
+                    </Text>
+                  )}
+                </Pressable>
+              </View>
+            ))}
+            {filtered.length === 0 ? (
+              <Text style={[s.mergeHint, { padding: spacing.md }]}>Niemand gefunden.</Text>
+            ) : null}
+          </ScrollView>
+        </View>
       </Card>
     </View>
   );
@@ -558,6 +662,24 @@ function makeStyles(colors: Palette) {
     },
     memberItemName: { fontSize: 15, fontWeight: '700', color: colors.foreground },
     memberItemMail: { fontSize: 12, color: colors.mutedForeground, marginTop: 1 },
+    roleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      paddingHorizontal: spacing.md,
+      paddingVertical: 10,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    rolePill: {
+      minWidth: 96,
+      height: 34,
+      paddingHorizontal: spacing.md,
+      borderRadius: radius.full,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    rolePillText: { fontSize: 13, fontWeight: '800' },
 
     eventHead: {
       flexDirection: 'row',

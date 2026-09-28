@@ -29,6 +29,8 @@ export interface ScreenData {
   }) => Promise<void>;
   /** Admin fuehrt zwei Mitglieder zusammen (Duplikat -> behaltenes Konto). */
   onMergeMembers?: (keepId: string, mergeId: string) => Promise<void>;
+  /** Admin setzt/entzieht Admin-Rechte eines Mitglieds. */
+  onSetAdmin?: (memberId: string, admin: boolean) => Promise<void>;
   /** Emoji-Avatar je Mitglied (memberId -> Emoji). */
   avatars: Record<string, string>;
   onSetAvatar: (emoji: string) => void;

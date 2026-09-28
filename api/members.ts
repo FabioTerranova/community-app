@@ -6,6 +6,7 @@ import {
   queryDatabase,
   read,
   resolveDatabaseId,
+  updatePage,
 } from './_lib/notion';
 import { MEMBERS, envId } from './_lib/schema';
 
@@ -31,6 +32,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         active: r.properties?.Aktiv ? read.checkbox(r.properties.Aktiv) : true,
         emoji: read.text(r.properties?.Emoji) || undefined,
         photoUrl: read.fileUrl(r.properties?.Foto) || undefined,
+        admin: r.properties?.Admin ? read.checkbox(r.properties.Admin) : false,
       }));
       return res.status(200).json({ ok: true, members });
     }
@@ -50,6 +52,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res
         .status(200)
         .json({ ok: true, member: { id: page.id, name, email, active: active !== false } });
+    }
+
+    if (req.method === 'PATCH') {
+      // Admin-Recht setzen/entziehen: PATCH /api/members {memberId, admin}
+      const body = (typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body) || {};
+      const memberId = String(body.memberId || '').trim();
+      if (!memberId) return res.status(400).json({ ok: false, reason: 'memberId fehlt.' });
+      if (typeof body.admin !== 'boolean') {
+        return res.status(400).json({ ok: false, reason: 'admin (true/false) noetig.' });
+      }
+      await updatePage(token, memberId, { Admin: prop.checkbox(body.admin) });
+      return res.status(200).json({ ok: true, memberId, admin: body.admin });
     }
 
     return res.status(405).json({ ok: false, reason: 'Method not allowed.' });

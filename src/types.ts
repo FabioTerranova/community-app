@@ -19,6 +19,8 @@ export interface Member {
   emoji?: string;
   /** URL des Profilfotos (temporaere Notion-Datei-URL); hat Vorrang vor Emoji/Initialen. */
   photoUrl?: string;
+  /** Admin-Rechte (Admin-Tab: Termine anlegen, Anwesenheit bestaetigen, Admins verwalten). */
+  admin?: boolean;
 }
 
 /**

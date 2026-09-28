@@ -50,7 +50,18 @@ Notion-Daten**. Login, Domain, Live-Daten und Admin funktionieren.
 ### 🏆 Getrennte Ranglisten Bozen / Schlanders (28.09.2026)
 Rangliste hat einen Umschalter **Gesamt / Schlanders / Bozen** (`LeaderboardScreen.tsx`).
 Ort je Termin aus Titel/Ort abgeleitet (`eventPlace` in `src/logic/format.ts`); die
-persoenliche Karte oben bleibt gesamt-basiert.
+persoenliche Karte oben bleibt gesamt-basiert. **Alle Tabs zeigen alle Mitglieder**
+(auch mit 0 Punkten) — Punkte zaehlen nur `attended` (Admin-„War da"), fuellen sich also
+erst nach dem ersten stattgefundenen Termin.
+
+### 🛡️ Admin-Verwaltung in der App (28.09.2026)
+Admin-Tab -> **„Admins verwalten"**: alle Mitglieder (Admins oben) mit Suche + Umschalter
+je Person. `Member.admin` im Modell; `GET /api/members` liefert `admin`;
+`PATCH /api/members {memberId, admin}` setzt das Notion-Haekchen; Client
+`setMemberAdmin` + optimistischer Handler `onSetAdmin` in `App.tsx`.
+Alternativ per Skript: `node scripts/set-admin.mjs <mail> [<mail> …]` (`--off`/`--dry`).
+Aktuelle Admins: Fabio, juuli, Elia Weiss, Samuel Hoechenberger, Lukas Palla,
+Sarah Rechenmacher, Vero. (2 weitere folgen, sobald sie sich angemeldet haben.)
 
 ### ⏸️ Naechster Schritt / offen
 1. ✅ **JUHA-Termine sind importiert** (15 Stueck, live in Notion): JUHA Schlanders

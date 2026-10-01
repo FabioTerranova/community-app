@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { AttendanceRecord, CommunityEvent, DailyVerse, Member } from '../types';
 import { radius, spacing, type Palette } from '../theme';
 import { useTheme } from '../ThemeContext';
@@ -10,6 +10,7 @@ import { Avatar, Button, Card, CategoryChip, Pill, SectionTitle } from '../compo
 import { BookIcon, MapPinIcon } from '../components/icons';
 import { FadeSlide, useCountUp } from '../components/motion';
 import { EventDuties } from '../components/EventDuties';
+import { AttendeesList } from '../components/AttendeesList';
 
 export interface ScreenData {
   members: Member[];
@@ -104,6 +105,9 @@ export function HomeScreen(props: ScreenData) {
   const myEmoji = avatars[currentMemberId];
   const myPhoto = photos[currentMemberId];
   const shownPoints = useCountUp(points);
+  // Admin kann die Teilnehmer-Namen pro Termin einblenden (einer zugleich).
+  const isAdmin = !!me?.admin;
+  const [openId, setOpenId] = useState<string | null>(null);
 
   return (
     <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
@@ -200,11 +204,37 @@ export function HomeScreen(props: ScreenData) {
                     ) : null}
                     <View style={s.eventChips}>
                       <CategoryChip label={cat.label} />
-                      <Pill
-                        label={`${signupCount(records, event.id)} dabei`}
-                        tone={signedUp ? 'accent' : 'neutral'}
-                      />
+                      {isAdmin ? (
+                        <Pressable
+                          onPress={() => setOpenId(openId === event.id ? null : event.id)}
+                          accessibilityRole="button"
+                          accessibilityLabel={`${signupCount(records, event.id)} angemeldet — Namen ${
+                            openId === event.id ? 'ausblenden' : 'anzeigen'
+                          }`}
+                        >
+                          <Pill
+                            label={`${signupCount(records, event.id)} dabei ${
+                              openId === event.id ? '▴' : '▾'
+                            }`}
+                            tone={signedUp ? 'accent' : 'neutral'}
+                          />
+                        </Pressable>
+                      ) : (
+                        <Pill
+                          label={`${signupCount(records, event.id)} dabei`}
+                          tone={signedUp ? 'accent' : 'neutral'}
+                        />
+                      )}
                     </View>
+                    {isAdmin && openId === event.id ? (
+                      <AttendeesList
+                        records={records}
+                        members={members}
+                        eventId={event.id}
+                        avatars={avatars}
+                        photos={photos}
+                      />
+                    ) : null}
                     <EventDuties duties={event.duties} />
                   </View>
                 </View>

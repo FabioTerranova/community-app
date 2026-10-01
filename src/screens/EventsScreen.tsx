@@ -8,6 +8,7 @@ import { Button, Card, CategoryChip, Pill, SectionTitle } from '../components/ui
 import { CheckIcon, MapPinIcon, UsersIcon } from '../components/icons';
 import { FadeSlide } from '../components/motion';
 import { EventDuties } from '../components/EventDuties';
+import { AttendeesList } from '../components/AttendeesList';
 import type { ScreenData } from './HomeScreen';
 
 function statusFor(records: AttendanceRecord[], memberId: string, eventId: string) {
@@ -28,14 +29,23 @@ function townOf(location?: string): string {
 export function EventsScreen({
   events,
   records,
+  members,
   currentMemberId,
   today,
   onToggleSignup,
+  avatars,
+  photos,
 }: ScreenData) {
   const { colors } = useTheme();
   const s = useMemo(() => makeStyles(colors), [colors]);
   const [filter, setFilter] = useState<string>('all');
   const [region, setRegion] = useState<string>('all');
+  // Admin kann die Teilnehmer-Namen einblenden (ein Termin zugleich).
+  const isAdmin = useMemo(
+    () => !!members.find((m) => m.id === currentMemberId)?.admin,
+    [members, currentMemberId],
+  );
+  const [openId, setOpenId] = useState<string | null>(null);
 
   const matches = (e: CommunityEvent) =>
     (filter === 'all' || eventCategory(e.title).key === filter) &&
@@ -84,6 +94,14 @@ export function EventsScreen({
     const signedUp = mine === 'yes' || mine === 'attended';
     const cat = eventCategory(event.title);
     const count = signupCount(records, event.id);
+    const open = openId === event.id;
+    const countPill = (
+      <Pill
+        label={isAdmin ? `${count} dabei ${open ? '▴' : '▾'}` : `${count} dabei`}
+        tone={signedUp ? 'accent' : 'neutral'}
+        icon={<UsersIcon size={12} color={signedUp ? colors.accent : colors.secondary} />}
+      />
+    );
     return (
       <FadeSlide key={event.id} delay={idx * 55}>
         <Card style={s.card}>
@@ -106,12 +124,27 @@ export function EventsScreen({
               ) : null}
               <View style={s.chipsRow}>
                 <CategoryChip label={cat.label} />
-                <Pill
-                  label={`${count} dabei`}
-                  tone={signedUp ? 'accent' : 'neutral'}
-                  icon={<UsersIcon size={12} color={signedUp ? colors.accent : colors.secondary} />}
-                />
+                {isAdmin ? (
+                  <Pressable
+                    onPress={() => setOpenId(open ? null : event.id)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${count} angemeldet — Namen ${open ? 'ausblenden' : 'anzeigen'}`}
+                  >
+                    {countPill}
+                  </Pressable>
+                ) : (
+                  countPill
+                )}
               </View>
+              {isAdmin && open ? (
+                <AttendeesList
+                  records={records}
+                  members={members}
+                  eventId={event.id}
+                  avatars={avatars}
+                  photos={photos}
+                />
+              ) : null}
               <EventDuties duties={event.duties} />
             </View>
           </View>

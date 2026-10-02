@@ -46,11 +46,14 @@ export function upcomingEvents(events: CommunityEvent[], nowIso: string): Commun
 }
 
 /**
- * Endzeitpunkt eines Termins als echte lokale Zeit (ms seit Epoch):
- *  - mit Endzeit (endDate)               -> deren Zeitpunkt
+ * Zeitpunkt, ab dem ein Termin als "vorbei" und damit bestaetigbar gilt
+ * (echte lokale Zeit, ms seit Epoch):
+ *  - mit Endzeit (endDate)               -> deren Zeitpunkt (punktgenau)
  *  - nur Startzeit (date traegt Uhrzeit) -> der Startzeitpunkt
- *  - nur Datum (kein 'T')                -> Ende des Kalendertags (lokal, 23:59:59)
- * So weiss der Admin-Screen, ab wann ein Termin "vorbei" und bestaetigbar ist.
+ *  - nur Datum (kein 'T')                -> Beginn des Kalendertags (lokal, 00:00),
+ *    d.h. am Termintag selbst bestaetigbar (ohne hinterlegte Uhrzeit laesst sich
+ *    kein genaues Ende berechnen; der Admin bestaetigt ohnehin erst nach der Sitzung).
+ * So weiss der Admin-Screen, ab wann ein Termin bestaetigbar ist.
  */
 export function eventEndMs(event: Pick<CommunityEvent, 'date' | 'endDate'>): number {
   const stamp =
@@ -61,7 +64,7 @@ export function eventEndMs(event: Pick<CommunityEvent, 'date' | 'endDate'>): num
         : null;
   if (stamp) return new Date(stamp).getTime();
   const [y, m, d] = event.date.slice(0, 10).split('-').map(Number);
-  return new Date(y, m - 1, d, 23, 59, 59, 999).getTime();
+  return new Date(y, m - 1, d, 0, 0, 0, 0).getTime();
 }
 
 /** Ist der Termin (sein Ende) bereits vorbei? -> im Admin bestaetigbar. */

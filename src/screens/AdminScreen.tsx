@@ -278,7 +278,7 @@ function NewEventForm({
           />
         </View>
         <Text style={s.mergeHint}>
-          Mit Endzeit kann der Termin ab dieser Uhrzeit bestätigt werden – ohne Uhrzeit erst am Folgetag.
+          Mit Endzeit kann der Termin ab dieser Uhrzeit bestätigt werden – ohne Uhrzeit ab dem Termintag.
         </Text>
         <TextInput
           value={location}

@@ -83,6 +83,8 @@ export async function getEvents(): Promise<CommunityEvent[]> {
 export async function createEvent(input: {
   title: string;
   date: string;
+  /** Optionaler Ende-Zeitstempel ("…T21:00+02:00") — steuert, ab wann bestaetigbar. */
+  endDate?: string;
   location?: string;
   notes?: string;
   /** Verantwortliche Vorbereitung (kommagetrennt bei mehreren). */

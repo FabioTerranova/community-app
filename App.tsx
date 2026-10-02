@@ -287,6 +287,7 @@ function AppInner() {
   async function createEvent(input: {
     title: string;
     date: string;
+    endDate?: string;
     location?: string;
     vorbereitung?: string;
     snacks?: string;

@@ -12,9 +12,14 @@ const MONTHS_LONG = [
   'September', 'Oktober', 'November', 'Dezember',
 ];
 
+/** Tages-Anteil eines Datums/Zeitstempels: "2026-10-02T19:00+02:00" -> "2026-10-02". */
+export function dayPart(iso: string): string {
+  return String(iso ?? '').slice(0, 10);
+}
+
 /** "2026-08-31" -> { weekday: "Mo", day: 31, month: "Aug" }. */
 export function parseDate(iso: string): { weekday: string; day: number; month: string } {
-  const [y, m, d] = iso.split('-').map(Number);
+  const [y, m, d] = dayPart(iso).split('-').map(Number);
   const date = new Date(Date.UTC(y, m - 1, d));
   return { weekday: WEEKDAYS[date.getUTCDay()], day: d, month: MONTHS[m - 1] };
 }
@@ -27,13 +32,37 @@ export function formatDate(iso: string): string {
 
 /** "2026-08-31" -> "Montag, 31. August" (fuer den Begruessungs-Header). */
 export function formatLongDate(iso: string): string {
-  const [y, m, d] = iso.split('-').map(Number);
+  const [y, m, d] = dayPart(iso).split('-').map(Number);
   const date = new Date(Date.UTC(y, m - 1, d));
   return `${WEEKDAYS_LONG[date.getUTCDay()]}, ${d}. ${MONTHS_LONG[m - 1]}`;
 }
 
+/** "2026-10-02T19:30+02:00" -> "19:30" (nur wenn eine Uhrzeit vorhanden ist, sonst ""). */
+export function formatTime(iso?: string): string {
+  const s = String(iso ?? '');
+  const m = s.match(/T(\d{2}):(\d{2})/);
+  return m ? `${m[1]}:${m[2]}` : '';
+}
+
+/**
+ * Datum (JJJJ-MM-TT) + Uhrzeit (HH:MM) -> voller ISO-Zeitstempel MIT lokalem
+ * Zeitzonen-Offset, z.B. "2026-10-02T19:30:00+02:00". Der Offset wird fuer genau
+ * diesen Tag berechnet (beruecksichtigt Sommer-/Winterzeit), damit der Zeitpunkt
+ * ueber den Notion-Roundtrip eindeutig bleibt.
+ */
+export function combineDateTime(dateYmd: string, hhmm: string): string {
+  const [y, m, d] = dateYmd.split('-').map(Number);
+  const [h, min] = hhmm.split(':').map(Number);
+  const local = new Date(y, m - 1, d, h, min, 0, 0);
+  const offMin = -local.getTimezoneOffset(); // Minuten relativ zu UTC (+ = oestlich)
+  const sign = offMin >= 0 ? '+' : '-';
+  const abs = Math.abs(offMin);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${dateYmd}T${pad(h)}:${pad(min)}:00${sign}${pad(Math.floor(abs / 60))}:${pad(abs % 60)}`;
+}
+
 function toUTC(iso: string): Date {
-  const [y, m, d] = iso.split('-').map(Number);
+  const [y, m, d] = dayPart(iso).split('-').map(Number);
   return new Date(Date.UTC(y, m - 1, d));
 }
 

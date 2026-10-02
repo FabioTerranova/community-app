@@ -11,7 +11,8 @@ import {
 import type { AttendanceRecord, Member } from '../types';
 import { radius, spacing, type Palette } from '../theme';
 import { useTheme } from '../ThemeContext';
-import { formatDate } from '../logic/format';
+import { combineDateTime, formatDate, formatTime } from '../logic/format';
+import { isEventOver } from '../logic/attendance';
 import { Avatar, Button, Card } from '../components/ui';
 import { CheckIcon, CloseIcon } from '../components/icons';
 import type { ScreenData } from './HomeScreen';
@@ -25,7 +26,6 @@ export function AdminScreen({
   members,
   events,
   records,
-  today,
   onSetStatus,
   onCreateEvent,
   onMergeMembers,
@@ -36,12 +36,15 @@ export function AdminScreen({
   const { colors } = useTheme();
   const s = useMemo(() => makeStyles(colors), [colors]);
 
+  // "Vorbei" nach ECHTER Endzeit (nicht nur Kalendertag): eine am selben Abend
+  // beendete Sitzung ist sofort bestaetigbar, sobald ihre Endzeit erreicht ist.
+  const nowMs = Date.now();
   const past = events
-    .filter((e) => e.date < today)
+    .filter((e) => isEventOver(e, nowMs))
     .sort((a, b) => b.date.localeCompare(a.date));
 
   const pendingCount = records.filter(
-    (r) => r.status === 'yes' && events.find((e) => e.id === r.eventId && e.date < today),
+    (r) => r.status === 'yes' && events.find((e) => e.id === r.eventId && isEventOver(e, nowMs)),
   ).length;
 
   const eventsWithSignups = past
@@ -95,7 +98,14 @@ export function AdminScreen({
             <View style={s.eventHead}>
               <View style={{ flex: 1 }}>
                 <Text style={s.eventTitle}>{event.title}</Text>
-                <Text style={s.eventDate}>{formatDate(event.date)}</Text>
+                <Text style={s.eventDate}>
+                  {formatDate(event.date)}
+                  {formatTime(event.date)
+                    ? ` · ${formatTime(event.date)}${
+                        formatTime(event.endDate) ? `–${formatTime(event.endDate)}` : ''
+                      }`
+                    : ''}
+                </Text>
               </View>
               {openHere > 0 ? (
                 <View style={[s.openBadge, { backgroundColor: colors.accentSoft }]}>
@@ -137,6 +147,7 @@ function NewEventForm({
   onCreate: (input: {
     title: string;
     date: string;
+    endDate?: string;
     location?: string;
     vorbereitung?: string;
     snacks?: string;
@@ -146,11 +157,25 @@ function NewEventForm({
   const s = useMemo(() => makeStyles(colors), [colors]);
   const [title, setTitle] = useState('');
   const [date, setDate] = useState('');
+  const [from, setFrom] = useState('');
+  const [until, setUntil] = useState('');
   const [location, setLocation] = useState('');
   const [vorbereitung, setVorbereitung] = useState('');
   const [snacks, setSnacks] = useState('');
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+
+  /** "19" / "19:5" / "19:30" -> "19:30"; leer -> null; ungueltig -> undefined. */
+  function normTime(v: string): string | null | undefined {
+    const t = v.trim();
+    if (!t) return null;
+    const m = t.match(/^(\d{1,2}):?(\d{2})$/);
+    if (!m) return undefined;
+    const h = Number(m[1]);
+    const min = Number(m[2]);
+    if (h > 23 || min > 59) return undefined;
+    return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+  }
 
   async function submit() {
     const t = title.trim();
@@ -163,18 +188,38 @@ function NewEventForm({
       setMsg('Datum im Format JJJJ-MM-TT (z. B. 2026-10-02).');
       return;
     }
+    const vonN = normTime(from);
+    const bisN = normTime(until);
+    if (vonN === undefined || bisN === undefined) {
+      setMsg('Uhrzeit im Format HH:MM (z. B. 19:30).');
+      return;
+    }
+    if (bisN && !vonN) {
+      setMsg('Bitte auch eine Startzeit (von) angeben.');
+      return;
+    }
+    if (vonN && bisN && bisN < vonN) {
+      setMsg('Die Endzeit liegt vor der Startzeit.');
+      return;
+    }
+    // Startzeit -> voller Zeitstempel; sonst reines Datum. Endzeit optional.
+    const startIso = vonN ? combineDateTime(d, vonN) : d;
+    const endIso = bisN ? combineDateTime(d, bisN) : undefined;
     setMsg(null);
     setSaving(true);
     try {
       await onCreate({
         title: t,
-        date: d,
+        date: startIso,
+        endDate: endIso,
         location: location.trim() || undefined,
         vorbereitung: vorbereitung.trim() || undefined,
         snacks: snacks.trim() || undefined,
       });
       setTitle('');
       setDate('');
+      setFrom('');
+      setUntil('');
       setLocation('');
       setVorbereitung('');
       setSnacks('');
@@ -208,6 +253,33 @@ function NewEventForm({
           editable={!saving}
           style={s.input}
         />
+        <View style={s.timeRow}>
+          <TextInput
+            value={from}
+            onChangeText={setFrom}
+            placeholder="von HH:MM (optional)"
+            placeholderTextColor={colors.mutedForeground}
+            autoCapitalize="none"
+            autoCorrect={false}
+            keyboardType="numbers-and-punctuation"
+            editable={!saving}
+            style={[s.input, { flex: 1 }]}
+          />
+          <TextInput
+            value={until}
+            onChangeText={setUntil}
+            placeholder="bis HH:MM (optional)"
+            placeholderTextColor={colors.mutedForeground}
+            autoCapitalize="none"
+            autoCorrect={false}
+            keyboardType="numbers-and-punctuation"
+            editable={!saving}
+            style={[s.input, { flex: 1 }]}
+          />
+        </View>
+        <Text style={s.mergeHint}>
+          Mit Endzeit kann der Termin ab dieser Uhrzeit bestätigt werden – ohne Uhrzeit ab dem Termintag.
+        </Text>
         <TextInput
           value={location}
           onChangeText={setLocation}
@@ -621,6 +693,7 @@ function makeStyles(colors: Palette) {
       color: colors.foreground,
       backgroundColor: colors.surfaceAlt,
     },
+    timeRow: { flexDirection: 'row', gap: spacing.sm },
     formMsg: { fontSize: 13, fontWeight: '600', color: colors.secondary },
     savingRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: 6 },
 

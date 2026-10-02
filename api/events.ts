@@ -46,6 +46,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         id: r.id,
         title: read.titleText(r.properties?.[titleProp]),
         date: read.date(r.properties?.Datum),
+        endDate: read.dateEnd(r.properties?.Datum) || undefined,
         location: read.text(r.properties?.Ort) || undefined,
         notes: read.text(r.properties?.Notizen) || undefined,
         duties: dutiesFrom(read.text(r.properties?.Vorbereitung), read.text(r.properties?.Snacks)),
@@ -54,9 +55,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     if (req.method === 'POST') {
-      const { title, date, location, notes, vorbereitung, snacks } = (req.body || {}) as {
+      const { title, date, endDate, location, notes, vorbereitung, snacks } = (req.body || {}) as {
         title?: string;
         date?: string;
+        endDate?: string;
         location?: string;
         notes?: string;
         vorbereitung?: string;
@@ -65,7 +67,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!title || !date) return res.status(400).json({ ok: false, reason: 'title und date noetig.' });
       const page = await createPage(token, dbId, {
         [titleProp]: prop.title(title),
-        Datum: prop.date(date),
+        Datum: prop.date(date, endDate),
         Ort: prop.text(location || ''),
         Notizen: prop.text(notes || ''),
         Vorbereitung: prop.text(vorbereitung || ''),
@@ -77,6 +79,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           id: page.id,
           title,
           date,
+          endDate,
           location,
           notes,
           duties: dutiesFrom(vorbereitung || '', snacks || ''),

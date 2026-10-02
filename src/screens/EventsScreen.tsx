@@ -292,7 +292,7 @@ function FilterChip({
 function DateBlock({ iso, muted }: { iso: string; muted?: boolean }) {
   const { colors } = useTheme();
   const s = useMemo(() => makeStyles(colors), [colors]);
-  const [, , d] = iso.split('-');
+  const [, , d] = iso.slice(0, 10).split('-');
   const monthName = formatDate(iso).split(' ').pop();
   const weekday = formatDate(iso).split(',')[0];
   return (

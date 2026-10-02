@@ -44,3 +44,30 @@ export function upcomingEvents(events: CommunityEvent[], nowIso: string): Commun
     .filter((e) => e.date >= nowIso)
     .sort((a, b) => a.date.localeCompare(b.date));
 }
+
+/**
+ * Zeitpunkt, ab dem ein Termin als "vorbei" und damit bestaetigbar gilt
+ * (echte lokale Zeit, ms seit Epoch):
+ *  - mit Endzeit (endDate)               -> deren Zeitpunkt (punktgenau)
+ *  - nur Startzeit (date traegt Uhrzeit) -> der Startzeitpunkt
+ *  - nur Datum (kein 'T')                -> Beginn des Kalendertags (lokal, 00:00),
+ *    d.h. am Termintag selbst bestaetigbar (ohne hinterlegte Uhrzeit laesst sich
+ *    kein genaues Ende berechnen; der Admin bestaetigt ohnehin erst nach der Sitzung).
+ * So weiss der Admin-Screen, ab wann ein Termin bestaetigbar ist.
+ */
+export function eventEndMs(event: Pick<CommunityEvent, 'date' | 'endDate'>): number {
+  const stamp =
+    event.endDate && event.endDate.includes('T')
+      ? event.endDate
+      : event.date.includes('T')
+        ? event.date
+        : null;
+  if (stamp) return new Date(stamp).getTime();
+  const [y, m, d] = event.date.slice(0, 10).split('-').map(Number);
+  return new Date(y, m - 1, d, 0, 0, 0, 0).getTime();
+}
+
+/** Ist der Termin (sein Ende) bereits vorbei? -> im Admin bestaetigbar. */
+export function isEventOver(event: Pick<CommunityEvent, 'date' | 'endDate'>, nowMs: number): boolean {
+  return eventEndMs(event) <= nowMs;
+}

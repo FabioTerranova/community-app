@@ -185,7 +185,9 @@ export const prop = {
   text: (v: string) => ({ rich_text: [{ type: 'text', text: { content: String(v ?? '').slice(0, 1900) } }] }),
   email: (v?: string) => ({ email: v || null }),
   number: (v?: number) => ({ number: Number.isFinite(v as number) ? v : null }),
-  date: (iso?: string) => ({ date: iso ? { start: iso } : null }),
+  date: (iso?: string, end?: string) => ({
+    date: iso ? { start: iso, ...(end ? { end } : {}) } : null,
+  }),
   select: (name?: string) => ({ select: name ? { name } : null }),
   checkbox: (v: boolean) => ({ checkbox: !!v }),
   /** files-Property mit einem hochgeladenen Bild (leeres Array = Foto entfernen). */
@@ -203,6 +205,7 @@ export const read = {
   email: (p: any): string => p?.email || '',
   number: (p: any): number | undefined => (typeof p?.number === 'number' ? p.number : undefined),
   date: (p: any): string => p?.date?.start || '',
+  dateEnd: (p: any): string => p?.date?.end || '',
   select: (p: any): string => p?.select?.name || '',
   checkbox: (p: any): boolean => !!p?.checkbox,
   /** Erste Datei-URL einer files-Property (Notion-Datei oder externer Link). */

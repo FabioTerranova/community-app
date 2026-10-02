@@ -24,6 +24,7 @@ export interface ScreenData {
   onCreateEvent?: (input: {
     title: string;
     date: string;
+    endDate?: string;
     location?: string;
     vorbereitung?: string;
     snacks?: string;
@@ -187,7 +188,7 @@ export function HomeScreen(props: ScreenData) {
               <Card style={s.eventCard}>
                 <View style={s.eventTop}>
                   <View style={s.dateChip}>
-                    <Text style={s.dateChipDay}>{Number(event.date.split('-')[2])}</Text>
+                    <Text style={s.dateChipDay}>{Number(event.date.slice(0, 10).split('-')[2])}</Text>
                     <Text style={s.dateChipMonth}>{p.split(' ').pop()}</Text>
                   </View>
                   <View style={{ flex: 1, gap: 5 }}>

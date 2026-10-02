@@ -39,8 +39,14 @@ export interface EventDuty {
 export interface CommunityEvent {
   id: string;
   title: string;
-  /** ISO-Datum, z.B. "2026-09-15" oder voller Zeitstempel. */
+  /** ISO-Datum, z.B. "2026-09-15" oder voller Start-Zeitstempel ("…T19:00+02:00"). */
   date: string;
+  /**
+   * Optionaler Ende-Zeitstempel ("…T21:00+02:00"). Bestimmt im Admin, ab wann der
+   * Termin als "vorbei" gilt und bestaetigt werden kann. Fehlt er, faellt die Logik
+   * auf die Startzeit bzw. (bei reinem Datum) auf das Tagesende zurueck.
+   */
+  endDate?: string;
   location?: string;
   notes?: string;
   /** Einteilungen/Dienste fuer diesen Termin (optional). */

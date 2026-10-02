@@ -13,21 +13,45 @@
 const NOTION_API = 'https://api.notion.com/v1';
 const NOTION_VERSION = '2022-06-28';
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * Notion-Request mit automatischer Wiederholung bei Rate-Limit (429) und
+ * transienten Serverfehlern (5xx). Notion erlaubt nur ~3 Schreibzugriffe/Sek.;
+ * beim schnellen Bestaetigen vieler Anwesenheiten liefe man sonst in "429 Too
+ * Many Requests" und die Aktion schluege fehl. Wir warten `Retry-After` (bzw.
+ * exponentiell steigend, gedeckelt) und versuchen es erneut.
+ */
 export async function notionFetch(path: string, token: string, init?: RequestInit): Promise<any> {
-  const res = await fetch(`${NOTION_API}${path}`, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Notion-Version': NOTION_VERSION,
-      'Content-Type': 'application/json',
-      ...(init?.headers as Record<string, string> | undefined),
-    },
-  });
-  const data: any = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(`Notion ${res.status}: ${data?.message || 'Fehler'}`);
+  const MAX_RETRIES = 3;
+  for (let attempt = 0; ; attempt++) {
+    const res = await fetch(`${NOTION_API}${path}`, {
+      ...init,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Notion-Version': NOTION_VERSION,
+        'Content-Type': 'application/json',
+        ...(init?.headers as Record<string, string> | undefined),
+      },
+    });
+
+    if ((res.status === 429 || res.status >= 500) && attempt < MAX_RETRIES) {
+      const retryAfter = Number(res.headers.get('retry-after'));
+      const waitMs =
+        Number.isFinite(retryAfter) && retryAfter > 0
+          ? Math.min(retryAfter * 1000, 3000)
+          : Math.min(300 * 2 ** attempt, 2500);
+      await res.text().catch(() => {}); // Body verwerfen -> Verbindung freigeben
+      await sleep(waitMs);
+      continue;
+    }
+
+    const data: any = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(`Notion ${res.status}: ${data?.message || 'Fehler'}`);
+    }
+    return data;
   }
-  return data;
 }
 
 const titleOf = (db: any): string =>
